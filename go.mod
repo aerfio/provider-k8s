@@ -1,6 +1,6 @@
-module github.com/crossplane/provider-template
+module github.com/crossplane/provider-lambda
 
-go 1.20
+go 1.21.3
 
 require (
 	github.com/crossplane/crossplane-runtime v1.14.0-rc.0.0.20230815060607-4f3cb3d9fd2b

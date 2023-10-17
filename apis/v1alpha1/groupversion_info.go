@@ -16,7 +16,7 @@ limitations under the License.
 
 // Package v1alpha1 contains the core resources of the Lambda provider.
 // +kubebuilder:object:generate=true
-// +groupName=lambda.crossplane.io
+// +groupName=aerf.io
 // +versionName=v1alpha1
 package v1alpha1
 
@@ -27,7 +27,7 @@ import (
 
 // Package type metadata.
 const (
-	Group   = "lambda.crossplane.io"
+	Group   = "aerf.io"
 	Version = "v1alpha1"
 )
 

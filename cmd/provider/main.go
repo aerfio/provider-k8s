@@ -32,15 +32,13 @@ import (
 
 	"github.com/crossplane/provider-lambda/apis"
 	lambda "github.com/crossplane/provider-lambda/internal/controller"
-	"github.com/crossplane/provider-lambda/internal/features"
 )
 
 type config struct {
-	Debug                    bool          `help:"Run with debug logging."`
-	LeaderElection           bool          `help:"Use leader election for the controller manager."`
-	PollInterval             time.Duration `help:"How often individual resources will be checked for drift from the desired state" default:"1m"`
-	MaxReconcileRate         int           `help:"The global maximum rate per second at which resources may checked for drift from the desired state." default:"10"`
-	EnableManagementPolicies bool          `help:"Enable support for Management Policies."`
+	Debug            bool          `help:"Run with debug logging."`
+	LeaderElection   bool          `help:"Use leader election for the controller manager."`
+	PollInterval     time.Duration `help:"How often individual resources will be checked for drift from the desired state" default:"1m"`
+	MaxReconcileRate int           `help:"The global maximum rate per second at which resources may checked for drift from the desired state." default:"10"`
 }
 
 func main() {
@@ -84,11 +82,6 @@ func main() {
 		PollInterval:            cfg.PollInterval,
 		GlobalRateLimiter:       ratelimiter.NewGlobal(cfg.MaxReconcileRate),
 		Features:                &feature.Flags{},
-	}
-
-	if cfg.EnableManagementPolicies {
-		o.Features.Enable(features.EnableAlphaManagementPolicies)
-		log.Info("Alpha feature enabled", "flag", features.EnableAlphaManagementPolicies)
 	}
 
 	kctx.FatalIfErrorf(lambda.Setup(mgr, o), "Cannot setup Lambda controllers")

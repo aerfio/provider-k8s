@@ -7,7 +7,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func safeCmp(x any, y any) (out string) {
+func safeCmp(x, y any) (out string) {
 	defer func() {
 		if r := recover(); r != nil {
 			out = ""
@@ -16,7 +16,7 @@ func safeCmp(x any, y any) (out string) {
 	return cmp.Diff(x, y)
 }
 
-func SafeDiff(x client.Object, y client.Object) string {
+func SafeDiff(x, y client.Object) string {
 	xunstr := &unstructured.Unstructured{}
 	yunstr := &unstructured.Unstructured{}
 	var err error

@@ -11,7 +11,7 @@ spec:
         key2: config2
       kind: ConfigMap
       metadata:
-        name: afsdffa
+        name: asdasd
         namespace: default
   providerConfigRef:
     name: example

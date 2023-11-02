@@ -83,7 +83,7 @@ spec:
                 description: ObjectParameters are the configurable fields of a Object.
                 properties:
                   manifest:
-                    description: Raw JSON representation of the kubernetes object
+                    description: Raw YAML representation of the kubernetes object
                       to be created.
                     type: object
                     x-kubernetes-embedded-resource: true
@@ -95,6 +95,8 @@ spec:
                       rule: '!(has(self.metadata.generateName))'
                     - message: APIVersion is immutable
                       rule: self.apiVersion == oldSelf.apiVersion
+                    - message: metadata.name is immutable
+                      rule: self.metadata.name == oldSelf.metadata.name
                 required:
                 - manifest
                 type: object

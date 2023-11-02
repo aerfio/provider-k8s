@@ -22,10 +22,12 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/controller"
 	"github.com/crossplane/crossplane-runtime/pkg/errors"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
+	"github.com/crossplane/crossplane-runtime/pkg/fieldpath"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
@@ -33,6 +35,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlcontroller "sigs.k8s.io/controller-runtime/pkg/controller"
 
 	objv1alpha1 "aerf.io/provider-k8s/apis/object/v1alpha1"
 	apisv1alpha1 "aerf.io/provider-k8s/apis/v1alpha1"
@@ -48,7 +51,7 @@ const (
 )
 
 // Setup adds a controller that reconciles Object managed resources.
-func Setup(mgr ctrl.Manager, o controller.Options) error {
+func Setup(mgr ctrl.Manager, o controller.Options) (ctrlcontroller.Controller, error) {
 	name := managed.ControllerName(objv1alpha1.ObjectGroupKind)
 
 	opts := []managed.ReconcilerOption{
@@ -69,7 +72,7 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 		WithOptions(o.ForControllerRuntime()).
 		WithEventFilter(resource.DesiredStateChanged()).
 		For(&objv1alpha1.Object{}).
-		Complete(ratelimiter.NewReconciler(name, r, o.GlobalRateLimiter))
+		Build(ratelimiter.NewReconciler(name, r, o.GlobalRateLimiter))
 }
 
 // A connector is expected to produce an ExternalClient when its Connect method
@@ -169,14 +172,12 @@ func (e *external) ApplyDryRun(ctx context.Context, obj client.Object) error {
 
 func (e *external) Observe(ctx context.Context, cr *objv1alpha1.Object) (managed.ExternalObservation, error) {
 	log := e.loggerFor(cr)
-	log.Debug("Observing")
+	log.Debug("Observing", "reconciledObject", cr)
 
 	desired, err := e.getDesired(cr)
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
-
-	log.Info("desired", "out", desired)
 
 	observed := desired.DeepCopy()
 	err = e.localCli.Get(ctx, types.NamespacedName{
@@ -184,7 +185,6 @@ func (e *external) Observe(ctx context.Context, cr *objv1alpha1.Object) (managed
 		Name:      desired.GetName(),
 	}, observed)
 	if apierrors.IsNotFound(err) {
-		log.Info("here")
 		return managed.ExternalObservation{ResourceExists: false}, nil
 	} else if err != nil {
 		return managed.ExternalObservation{}, err
@@ -195,7 +195,6 @@ func (e *external) Observe(ctx context.Context, cr *objv1alpha1.Object) (managed
 	}
 
 	resourceUpToDate := !e.hasDrifted(observed, desired)
-	log.Info("resourceUpToDate", "resourceUpToDate", resourceUpToDate)
 
 	if resourceUpToDate {
 		cr.SetConditions(xpv1.Available())
@@ -216,7 +215,8 @@ func (e *external) Observe(ctx context.Context, cr *objv1alpha1.Object) (managed
 }
 
 func (e *external) Create(ctx context.Context, cr *objv1alpha1.Object) (managed.ExternalCreation, error) {
-	e.loggerFor(cr).Debug("Creating")
+	log := e.loggerFor(cr)
+	log.Debug("Creating")
 
 	desired, err := e.getDesired(cr)
 	if err != nil {
@@ -226,7 +226,9 @@ func (e *external) Create(ctx context.Context, cr *objv1alpha1.Object) (managed.
 		return managed.ExternalCreation{}, err
 	}
 
-	return managed.ExternalCreation{}, nil
+	log.Debug("Created object", "object", desired)
+
+	return managed.ExternalCreation{}, e.updateConditionFromObserved(cr, desired)
 }
 
 func (e *external) Update(ctx context.Context, cr *objv1alpha1.Object) (managed.ExternalUpdate, error) {
@@ -236,11 +238,16 @@ func (e *external) Update(ctx context.Context, cr *objv1alpha1.Object) (managed.
 	if err != nil {
 		return managed.ExternalUpdate{}, err
 	}
+
+	desiredCopy := desired.DeepCopy()
 	if err := e.Apply(ctx, desired); err != nil {
 		return managed.ExternalUpdate{}, err
 	}
+	if diff := manageddiff.SafeDiff(desiredCopy, desired); diff != "" {
+		e.loggerFor(cr).Debug("Difference between the reconciled object", "diff", diff)
+	}
 
-	return managed.ExternalUpdate{}, nil
+	return managed.ExternalUpdate{}, e.updateConditionFromObserved(cr, desired)
 }
 
 func (e *external) Delete(ctx context.Context, cr *objv1alpha1.Object) error {
@@ -257,4 +264,39 @@ func (e *external) Delete(ctx context.Context, cr *objv1alpha1.Object) error {
 	}
 
 	return err
+}
+
+func (e *external) updateConditionFromObserved(obj *objv1alpha1.Object, observed *unstructured.Unstructured) error {
+	log := e.loggerFor(obj)
+	switch obj.Spec.Readiness.Policy {
+	case objv1alpha1.ReadinessPolicyDeriveFromObject:
+		conditioned := xpv1.ConditionedStatus{}
+		err := fieldpath.Pave(observed.Object).GetValueInto("status", &conditioned)
+		if err != nil {
+			log.Debug("Got error while getting conditions from observed object, setting it as Unavailable", "error", err, "observed", observed)
+			obj.SetConditions(xpv1.Unavailable().WithMessage("Got error while getting conditions from observed object"))
+			return errors.Wrap(err, "failed to get conditions from observed object")
+		}
+		if status := conditioned.GetCondition(xpv1.TypeReady).Status; status != corev1.ConditionTrue {
+			log.Debug("Observed object is not ready, setting it as Unavailable", "status", status, "observed", observed)
+			obj.SetConditions(xpv1.Unavailable().WithMessage(fmt.Sprintf("Observed object's condition with type %q is %q but should be %q", xpv1.TypeReady, status, corev1.ConditionTrue)))
+			return nil
+		}
+		obsrvdGenStatus := objv1alpha1.StatusWithObservedGeneration{}
+		if err := fieldpath.Pave(observed.Object).GetValueInto("status", &obsrvdGenStatus); err == nil {
+			if observed.GetGeneration() != obsrvdGenStatus.ObservedGeneration {
+				log.Debug("Observed object is not ready, setting it as Unavailable", "status", obsrvdGenStatus, "observed", observed)
+				obj.SetConditions(xpv1.Unavailable().WithMessage("Observed object's status.observedGeneration is not equal to metadata.generation"))
+				return nil
+			}
+		}
+
+		obj.SetConditions(xpv1.Available())
+	case objv1alpha1.ReadinessPolicySuccessfulCreate, "":
+		obj.SetConditions(xpv1.Available())
+	default:
+		// should never happen
+		return errors.Errorf("unknown readiness policy %q", obj.Spec.Readiness.Policy)
+	}
+	return nil
 }

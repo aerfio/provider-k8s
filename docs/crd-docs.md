@@ -84,7 +84,6 @@ Package v1alpha1 contains the core resources of the k8s provider.
 
 ### Resource Types
 - [Object](#object)
-- [ObjectList](#objectlist)
 
 
 
@@ -94,8 +93,7 @@ Package v1alpha1 contains the core resources of the k8s provider.
 
 A Object is an provider Kubernetes API type
 
-_Appears in:_
-- [ObjectList](#objectlist)
+
 
 | Field | Description |
 | --- | --- |
@@ -104,22 +102,6 @@ _Appears in:_
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
 | `spec` _[ObjectSpec](#objectspec)_ |  |
 | `status` _[ObjectStatus](#objectstatus)_ |  |
-
-
-#### ObjectList
-
-
-
-ObjectList contains a list of Object
-
-
-
-| Field | Description |
-| --- | --- |
-| `apiVersion` _string_ | `k8s.aerf.io/v1alpha1`
-| `kind` _string_ | `ObjectList`
-| `metadata` _[ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#listmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |
-| `items` _[Object](#object) array_ |  |
 
 
 #### ObjectParameters
@@ -133,7 +115,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `manifest` _[RawExtension](#rawextension)_ | Raw JSON representation of the kubernetes object to be created. |
+| `manifest` _[RawExtension](#rawextension)_ | Raw YAML representation of the kubernetes object to be created. |
 
 
 #### ObjectSpec
@@ -194,5 +176,19 @@ ReadinessPolicy defines how the Object's readiness condition should be computed.
 _Appears in:_
 - [Readiness](#readiness)
 
+
+
+#### StatusWithObservedGeneration
+
+
+
+
+
+_Appears in:_
+- [ObjectStatus](#objectstatus)
+
+| Field | Description |
+| --- | --- |
+| `observedGeneration` _integer_ |  |
 
 

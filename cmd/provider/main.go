@@ -20,18 +20,21 @@ import (
 	"time"
 
 	"github.com/alecthomas/kong"
+	"github.com/crossplane/crossplane-runtime/pkg/controller"
+	"github.com/crossplane/crossplane-runtime/pkg/feature"
+	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/go-logr/logr"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	"github.com/crossplane/crossplane-runtime/pkg/controller"
-	"github.com/crossplane/crossplane-runtime/pkg/feature"
-	"github.com/crossplane/crossplane-runtime/pkg/logging"
-	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
-
 	"aerf.io/provider-k8s/apis"
-	ctrls "aerf.io/provider-k8s/internal/controller"
+	objv1alpha1 "aerf.io/provider-k8s/apis/object/v1alpha1"
+	"aerf.io/provider-k8s/apis/v1alpha1"
+	"aerf.io/provider-k8s/internal/controller/clientregistry"
+	configcontroller "aerf.io/provider-k8s/internal/controller/config"
+	"aerf.io/provider-k8s/internal/controller/object"
 )
 
 type config struct {
@@ -84,6 +87,12 @@ func main() {
 		Features:                &feature.Flags{},
 	}
 
-	kctx.FatalIfErrorf(ctrls.Setup(mgr, o), "Cannot setup controllers")
+	kctx.FatalIfErrorf(configcontroller.Setup(mgr, o), "Cannot setup %s controller", v1alpha1.ProviderConfigKind)
+
+	clientReg := &clientregistry.Placeholder{}
+	objectController, err := object.Setup(mgr, o)
+	kctx.FatalIfErrorf(err, "Cannot setup %s controller", objv1alpha1.ObjectKind)
+	clientReg.Register(objectController)
+
 	kctx.FatalIfErrorf(mgr.Start(ctrl.SetupSignalHandler()), "Cannot start controller manager")
 }

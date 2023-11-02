@@ -14,12 +14,13 @@ import (
 
 // ObjectParameters are the configurable fields of a Object.
 type ObjectParameters struct {
-	// Raw JSON representation of the kubernetes object to be created.
+	// Raw YAML representation of the kubernetes object to be created.
 	// +kubebuilder:validation:EmbeddedResource
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:XValidation:rule="self.kind == oldSelf.kind",message="Kind is immutable"
 	// +kubebuilder:validation:XValidation:rule="!(has(self.metadata.generateName))",message="generateName is disallowed"
 	// +kubebuilder:validation:XValidation:rule="self.apiVersion == oldSelf.apiVersion",message="APIVersion is immutable"
+	// +kubebuilder:validation:XValidation:rule="self.metadata.name == oldSelf.metadata.name",message="metadata.name is immutable"
 	Manifest runtime.RawExtension `json:"manifest"`
 }
 
@@ -30,10 +31,14 @@ type ObjectSpec struct {
 	Readiness         Readiness        `json:"readiness,omitempty"`
 }
 
+type StatusWithObservedGeneration struct {
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+}
+
 // A ObjectStatus represents the observed state of a Object.
 type ObjectStatus struct {
-	ObservedGeneration  int64 `json:"observedGeneration,omitempty"`
-	xpv1.ResourceStatus `json:",inline"`
+	StatusWithObservedGeneration `json:",inline"`
+	xpv1.ResourceStatus          `json:",inline"`
 }
 
 // ReadinessPolicy defines how the Object's readiness condition should be computed.

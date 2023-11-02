@@ -1,6 +1,6 @@
-# provider-lambda
+# provider-k8s
 
-`provider-lambda` is a minimal [Crossplane](https://crossplane.io/) Provider
+`provider-k8s` is a minimal [Crossplane](https://crossplane.io/) Provider
 that is meant to be used as a lambda for implementing new Providers. It comes
 with the following features that are meant to be refactored:
 

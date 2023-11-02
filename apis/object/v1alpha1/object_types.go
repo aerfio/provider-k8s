@@ -91,7 +91,7 @@ type ObjectList struct {
 	Items           []Object `json:"items"`
 }
 
-// Lambda type metadata.
+// Object type metadata.
 var (
 	ObjectKind             = reflect.TypeOf(Object{}).Name()
 	ObjectGroupKind        = schema.GroupKind{Group: Group, Kind: ObjectKind}.String()

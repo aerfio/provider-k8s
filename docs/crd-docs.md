@@ -7,7 +7,7 @@
 
 ## aerf.io/v1alpha1
 
-Package v1alpha1 contains the core resources of the Lambda provider.
+Package v1alpha1 contains the core resources of the Object provider.
 
 ### Resource Types
 - [ProviderConfig](#providerconfig)
@@ -18,7 +18,7 @@ Package v1alpha1 contains the core resources of the Lambda provider.
 
 
 
-A ProviderConfig configures a Lambda provider.
+A ProviderConfig configures a Object provider.
 
 
 
@@ -80,7 +80,7 @@ _Appears in:_
 
 ## k8s.aerf.io/v1alpha1
 
-Package v1alpha1 contains the core resources of the Lambda provider.
+Package v1alpha1 contains the core resources of the k8s provider.
 
 ### Resource Types
 - [Object](#object)

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1alpha1 contains the core resources of the Lambda provider.
+// Package v1alpha1 contains the core resources of the k8s provider.
 // +kubebuilder:object:generate=true
 // +groupName=k8s.aerf.io
 // +versionName=v1alpha1

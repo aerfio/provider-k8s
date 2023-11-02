@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package apis contains Kubernetes API for the Lambda provider.
+// Package apis contains Kubernetes API for the k8s provider.
 package apis
 
 import (

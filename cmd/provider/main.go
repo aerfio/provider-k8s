@@ -74,7 +74,7 @@ func main() {
 		RenewDeadline:              func() *time.Duration { d := 50 * time.Second; return &d }(),
 	})
 	kctx.FatalIfErrorf(err, "Cannot create controller manager")
-	kctx.FatalIfErrorf(apis.AddToScheme(mgr.GetScheme()), "Cannot add Lambda APIs to scheme")
+	kctx.FatalIfErrorf(apis.AddToScheme(mgr.GetScheme()), "Cannot add Object APIs to scheme")
 
 	o := controller.Options{
 		Logger:                  log,

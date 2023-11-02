@@ -15,3 +15,25 @@ limitations under the License.
 */
 
 package controller
+
+import (
+	"github.com/crossplane/crossplane-runtime/pkg/controller"
+	ctrl "sigs.k8s.io/controller-runtime"
+
+	"aerf.io/provider-k8s/internal/controller/config"
+	"aerf.io/provider-k8s/internal/controller/object"
+)
+
+// Setup creates all Lambda controllers with the supplied logger and adds them to
+// the supplied manager.
+func Setup(mgr ctrl.Manager, o controller.Options) error {
+	for _, setup := range []func(ctrl.Manager, controller.Options) error{
+		config.Setup,
+		object.Setup,
+	} {
+		if err := setup(mgr, o); err != nil {
+			return err
+		}
+	}
+	return nil
+}

@@ -1,0 +1,17 @@
+apiVersion: k8s.aerf.io/v1alpha1
+kind: Object
+metadata:
+  name: example
+spec:
+  forProvider:
+    manifest:
+      apiVersion: v1
+      data:
+        key1: config1
+        key2: config2
+      kind: ConfigMap
+      metadata:
+        name: afsdffa
+        namespace: default
+  providerConfigRef:
+    name: example

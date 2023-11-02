@@ -1,20 +1,20 @@
-apiVersion: v1
-kind: Secret
-metadata:
-  namespace: crossplane-system
-  name: example-provider-secret
-type: Opaque
-data:
+#apiVersion: v1
+#kind: Secret
+#metadata:
+#  namespace: crossplane-system
+#  name: example-provider-secret
+#type: Opaque
+#data:
   # credentials: BASE64ENCODED_PROVIDER_CREDS
 ---
-apiVersion: lambda.crossplane.io/v1alpha1
+apiVersion: aerf.io/v1alpha1
 kind: ProviderConfig
 metadata:
   name: example
 spec:
   credentials:
-    source: Secret
-    secretRef:
-      namespace: crossplane-system
-      name: example-provider-secret
-      key: credentials
+    source: InjectedIdentity
+#    secretRef:
+#      namespace: crossplane-system
+#      name: example-provider-secret
+#      key: credentials

@@ -20,13 +20,15 @@ package apis
 import (
 	"k8s.io/apimachinery/pkg/runtime"
 
-	lambdav1alpha1 "github.com/crossplane/provider-lambda/apis/v1alpha1"
+	objv1alpha1 "aerf.io/provider-k8s/apis/object/v1alpha1"
+	"aerf.io/provider-k8s/apis/v1alpha1"
 )
 
 func init() {
 	// Register the types with the Scheme so the components can map objects to GroupVersionKinds and back
 	AddToSchemes = append(AddToSchemes,
-		lambdav1alpha1.SchemeBuilder.AddToScheme,
+		v1alpha1.SchemeBuilder.AddToScheme,
+		objv1alpha1.SchemeBuilder.AddToScheme,
 	)
 }
 

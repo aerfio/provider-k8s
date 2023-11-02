@@ -4,25 +4,44 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.13.0
-  name: lambda.aerf.io
+  name: objects.k8s.aerf.io
 spec:
-  group: aerf.io
+  group: k8s.aerf.io
   names:
     categories:
     - crossplane
     - managed
-    kind: Lambda
-    listKind: LambdaList
-    plural: lambda
-    singular: lambda
+    - kubernetes
+    kind: Object
+    listKind: ObjectList
+    plural: objects
+    singular: object
   scope: Cluster
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.conditions[?(@.type=='Ready')].status
-      name: READY
+    - jsonPath: .spec.forProvider.manifest.kind
+      name: KIND
+      type: string
+    - jsonPath: .spec.forProvider.manifest.apiVersion
+      name: APIVERSION
+      priority: 1
+      type: string
+    - jsonPath: .spec.forProvider.manifest.metadata.name
+      name: METANAME
+      priority: 1
+      type: string
+    - jsonPath: .spec.forProvider.manifest.metadata.namespace
+      name: METANAMESPACE
+      priority: 1
+      type: string
+    - jsonPath: .spec.providerConfigRef.name
+      name: PROVIDERCONFIG
       type: string
     - jsonPath: .status.conditions[?(@.type=='Synced')].status
       name: SYNCED
+      type: string
+    - jsonPath: .status.conditions[?(@.type=='Ready')].status
+      name: READY
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: AGE
@@ -30,6 +49,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
+        description: A Object is an provider Kubernetes API type
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -44,7 +64,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: A LambdaSpec defines the desired state of a MyType.
+            description: A ObjectSpec defines the desired state of a Object.
             properties:
               deletionPolicy:
                 default: Delete
@@ -60,12 +80,23 @@ spec:
                 - Delete
                 type: string
               forProvider:
-                description: LambdaForProvider are the configurable fields of a Lambda.
+                description: ObjectParameters are the configurable fields of a Object.
                 properties:
-                  handler:
-                    type: string
+                  manifest:
+                    description: Raw JSON representation of the kubernetes object
+                      to be created.
+                    type: object
+                    x-kubernetes-embedded-resource: true
+                    x-kubernetes-preserve-unknown-fields: true
+                    x-kubernetes-validations:
+                    - message: Kind is immutable
+                      rule: self.kind == oldSelf.kind
+                    - message: generateName is disallowed
+                      rule: '!(has(self.metadata.generateName))'
+                    - message: APIVersion is immutable
+                      rule: self.apiVersion == oldSelf.apiVersion
                 required:
-                - handler
+                - manifest
                 type: object
               managementPolicies:
                 default:
@@ -204,6 +235,20 @@ spec:
                 required:
                 - name
                 type: object
+              readiness:
+                description: Readiness defines how the object's readiness condition
+                  should be computed, if not specified it will be considered ready
+                  as soon as the underlying external resource is considered up-to-date.
+                properties:
+                  policy:
+                    default: SuccessfulCreate
+                    description: Policy defines how the Object's readiness condition
+                      should be computed.
+                    enum:
+                    - SuccessfulCreate
+                    - DeriveFromObject
+                    type: string
+                type: object
               writeConnectionSecretToRef:
                 description: WriteConnectionSecretToReference specifies the namespace
                   and name of a Secret to which any connection details for this managed
@@ -228,7 +273,7 @@ spec:
             - forProvider
             type: object
           status:
-            description: A LambdaStatus represents the observed state of a MyType.
+            description: A ObjectStatus represents the observed state of a Object.
             properties:
               conditions:
                 description: Conditions of the resource.

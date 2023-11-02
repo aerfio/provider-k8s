@@ -30,8 +30,8 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 
-	"github.com/crossplane/provider-lambda/apis"
-	lambda "github.com/crossplane/provider-lambda/internal/controller"
+	"aerf.io/provider-k8s/apis"
+	ctrls "aerf.io/provider-k8s/internal/controller"
 )
 
 type config struct {
@@ -43,10 +43,10 @@ type config struct {
 
 func main() {
 	cfg := config{}
-	kctx := kong.Parse(&cfg, kong.DefaultEnvars("APP_"), kong.UsageOnError(), kong.Name("provider-lambda"))
+	kctx := kong.Parse(&cfg, kong.DefaultEnvars("APP_"), kong.UsageOnError(), kong.Name("provider-k8s"))
 
 	zl := zap.New(zap.UseDevMode(cfg.Debug))
-	log := logging.NewLogrLogger(zl.WithName("provider-lambda"))
+	log := logging.NewLogrLogger(zl.WithName("provider-k8s"))
 	if cfg.Debug {
 		// The controller-runtime runs with a no-op logger by default. It is
 		// *very* verbose even at info level, so we only provide it a real
@@ -68,7 +68,7 @@ func main() {
 		// server. Switching to Leases only and longer leases appears to
 		// alleviate this.
 		LeaderElection:             cfg.LeaderElection,
-		LeaderElectionID:           "crossplane-leader-election-provider-lambda",
+		LeaderElectionID:           "crossplane-leader-election-provider-k8s",
 		LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
 		LeaseDuration:              func() *time.Duration { d := 60 * time.Second; return &d }(),
 		RenewDeadline:              func() *time.Duration { d := 50 * time.Second; return &d }(),
@@ -84,6 +84,6 @@ func main() {
 		Features:                &feature.Flags{},
 	}
 
-	kctx.FatalIfErrorf(lambda.Setup(mgr, o), "Cannot setup Lambda controllers")
+	kctx.FatalIfErrorf(ctrls.Setup(mgr, o), "Cannot setup controllers")
 	kctx.FatalIfErrorf(mgr.Start(ctrl.SetupSignalHandler()), "Cannot start controller manager")
 }

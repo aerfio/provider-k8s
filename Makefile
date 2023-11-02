@@ -7,12 +7,12 @@ CONTROLLER_GEN ?= bin/controller-gen-${CONTROLLER_TOOLS_VERSION}
 ${CONTROLLER_GEN}:
 	./hack/get-go-tool.sh "sigs.k8s.io/controller-tools/cmd/controller-gen" $(CONTROLLER_TOOLS_VERSION)
 
-ANGRYJET_VERSION ?= v0.0.0-20230714144037-2684f4bc7638
+ANGRYJET_VERSION ?= v0.0.0-20230925130601-628280f8bf79
 ANGRYJET ?= bin/angryjet-${ANGRYJET_VERSION}
 ${ANGRYJET}:
 	./hack/get-go-tool.sh "github.com/crossplane/crossplane-tools/cmd/angryjet" $(ANGRYJET_VERSION)
 
-# yolo, I know what the docs say, but goreleaser is doing essentially nothing unusual and I always use newest Go version :shrug:
+# yolo, I know what the docs say, but goreleaser is doing essentially nothing unusual in golangci-lint's release pipeline and I always use newest Go version so we should be fine :shrug:
 GOLANGCI_LINT_VERSION ?= v1.55.1
 GOLANGCI_LINT ?= bin/golangci-lint-${GOLANGCI_LINT_VERSION}
 ${GOLANGCI_LINT}:
@@ -26,14 +26,18 @@ ${CRD_REF_DOCS}:
 .PHONY: clean
 clean:
 	rm -rf ./package/crds
-	rm -rf ./apis/lambda/v1alpha1/zz_generated.managed.go
-	rm -rf ./apis/lambda/v1alpha1/zz_generated.managedlist.go
+	rm -rf ./apis/object/v1alpha1/zz_generated.managed.go
+	rm -rf ./apis/object/v1alpha1/zz_generated.managedlist.go
 
 .PHONY: generate
-generate: clean ${ANGRYJET} ${CONTROLLER_GEN} ${CRD_REF_DOCS}
-	$(CONTROLLER_GEN) object:headerFile=./hack/boilerplate.go.txt paths=./... crd:crdVersions=v1 output:artifacts:config=./package/crds
+generate: ${ANGRYJET} ${CRD_REF_DOCS} generate-crds
+
 	$(ANGRYJET) generate-methodsets --header-file=./hack/boilerplate.go.txt ./...
 	$(CRD_REF_DOCS) --source-path=${CURRENT_DIR}/apis --config=crd-ref-docs-config.yaml --renderer=markdown --output-path=./docs/crd-docs.md
+
+.PHONY: generate-crds
+generate-crds: ${CONTROLLER_GEN}
+	$(CONTROLLER_GEN) object:headerFile=./hack/boilerplate.go.txt paths=./... crd:crdVersions=v1 output:artifacts:config=./package/crds
 
 .PHONY: test
 test:
@@ -41,7 +45,7 @@ test:
 
 .PHONY: build
 build:
-	go build -o ./bin/provider-lambda ./cmd/provider
+	go build -o ./bin/provider-k8s ./cmd/provider
 
 lint: ${GOLANGCI_LINT}
 	$(GOLANGCI_LINT) run ./...

@@ -47,5 +47,10 @@ test:
 build:
 	go build -o ./bin/provider-k8s ./cmd/provider
 
+.PHONY: lint
 lint: ${GOLANGCI_LINT}
 	$(GOLANGCI_LINT) run ./...
+
+.PHONY: lint-fix
+lint-fix: ${GOLANGCI_LINT}
+	$(GOLANGCI_LINT) run ./... --fix

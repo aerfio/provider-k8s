@@ -147,29 +147,6 @@ type external struct {
 	log       logging.Logger
 }
 
-func (e *external) loggerFor(obj client.Object) logging.Logger {
-	gvk := obj.GetObjectKind().GroupVersionKind()
-	return e.log.WithValues("name", obj.GetName(), "namespace", obj.GetNamespace(), "kind", gvk.Kind, "group", gvk.Group, "version", gvk.Version)
-}
-
-func (e *external) getDesired(obj *objv1alpha1.Object) (*unstructured.Unstructured, error) {
-	desired := &unstructured.Unstructured{}
-	if err := json.Unmarshal(obj.Spec.ForProvider.Manifest.Raw, desired); err != nil {
-		return nil, errors.Wrap(err, "cannot unmarshal raw manifest")
-	}
-
-	return desired, nil
-}
-
-func (e *external) Apply(ctx context.Context, obj client.Object, opts ...client.PatchOption) error {
-	patchOpts := append(opts, client.ForceOwnership, client.FieldOwner("provider-k8s"))
-	return e.remoteCli.Patch(ctx, obj, client.Apply, patchOpts...)
-}
-
-func (e *external) ApplyDryRun(ctx context.Context, obj client.Object) error {
-	return e.Apply(ctx, obj, client.DryRunAll)
-}
-
 func (e *external) Observe(ctx context.Context, cr *objv1alpha1.Object) (managed.ExternalObservation, error) {
 	log := e.loggerFor(cr)
 	log.Debug("Observing", "reconciledObject", cr)
@@ -264,6 +241,29 @@ func (e *external) Delete(ctx context.Context, cr *objv1alpha1.Object) error {
 	}
 
 	return err
+}
+
+func (e *external) loggerFor(obj client.Object) logging.Logger {
+	gvk := obj.GetObjectKind().GroupVersionKind()
+	return e.log.WithValues("name", obj.GetName(), "namespace", obj.GetNamespace(), "kind", gvk.Kind, "group", gvk.Group, "version", gvk.Version)
+}
+
+func (e *external) getDesired(obj *objv1alpha1.Object) (*unstructured.Unstructured, error) {
+	desired := &unstructured.Unstructured{}
+	if err := json.Unmarshal(obj.Spec.ForProvider.Manifest.Raw, desired); err != nil {
+		return nil, errors.Wrap(err, "cannot unmarshal raw manifest")
+	}
+
+	return desired, nil
+}
+
+func (e *external) Apply(ctx context.Context, obj client.Object, opts ...client.PatchOption) error {
+	patchOpts := append(opts, client.ForceOwnership, client.FieldOwner("provider-k8s")) // nolint:gocritic // it's deliberate
+	return e.remoteCli.Patch(ctx, obj, client.Apply, patchOpts...)
+}
+
+func (e *external) ApplyDryRun(ctx context.Context, obj client.Object) error {
+	return e.Apply(ctx, obj, client.DryRunAll)
 }
 
 func (e *external) updateConditionFromObserved(obj *objv1alpha1.Object, observed *unstructured.Unstructured) error {

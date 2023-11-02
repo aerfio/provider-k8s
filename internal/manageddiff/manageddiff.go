@@ -3,8 +3,6 @@ package manageddiff
 import (
 	"github.com/google/go-cmp/cmp"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func safeCmp(x, y any) (out string) {
@@ -16,24 +14,15 @@ func safeCmp(x, y any) (out string) {
 	return cmp.Diff(x, y)
 }
 
-func SafeDiff(x, y client.Object) string {
-	xunstr := &unstructured.Unstructured{}
-	yunstr := &unstructured.Unstructured{}
-	var err error
-	xunstr.Object, err = runtime.DefaultUnstructuredConverter.ToUnstructured(x)
-	if err != nil {
-		return ""
-	}
+func SafeDiff(x, y *unstructured.Unstructured) string {
+	xCopy := x.DeepCopy()
+	yCopy := y.DeepCopy()
 
-	yunstr.Object, err = runtime.DefaultUnstructuredConverter.ToUnstructured(y)
-	if err != nil {
-		return ""
-	}
-	unstructured.RemoveNestedField(xunstr.Object, "status")
-	xunstr.SetManagedFields(nil)
+	unstructured.RemoveNestedField(xCopy.Object, "status")
+	xCopy.SetManagedFields(nil)
 
-	unstructured.RemoveNestedField(yunstr.Object, "status")
-	yunstr.SetManagedFields(nil)
+	unstructured.RemoveNestedField(yCopy.Object, "status")
+	yCopy.SetManagedFields(nil)
 
-	return safeCmp(xunstr, yunstr)
+	return safeCmp(xCopy, yCopy)
 }

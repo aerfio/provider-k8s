@@ -7,7 +7,6 @@ require (
 	github.com/crossplane/crossplane-runtime v1.14.1
 	github.com/go-logr/logr v1.3.0
 	github.com/google/go-cmp v0.6.0
-	go.uber.org/atomic v1.11.0
 	go.uber.org/zap v1.26.0
 	k8s.io/api v0.28.3
 	k8s.io/apimachinery v0.28.3

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
-	"go.uber.org/atomic"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/fields"
@@ -115,35 +114,29 @@ func (r *Registry) RegisterCacheFromRestConfig(restCfg *rest.Config, gvk schema.
 		return err
 	}
 
-	scc := &startCountingCache{
-		log:          r.log,
-		c:            c,
-		startedTimes: atomic.NewInt32(0),
-	}
-
 	ctx, cancel := context.WithCancel(context.Background())
 	r.mu.Lock()
 	r.cacheMap[key] = cacheWithStopper{
-		c:        scc,
+		c:        c,
 		cancelFn: cancel,
 	}
 	r.mu.Unlock()
 
 	go func() {
 		log.Debug("starting cache")
-		if err := scc.Start(ctx); err != nil {
+		if err := c.Start(ctx); err != nil {
 			log.Info(fmt.Sprintf("failed to run cache: %s", err))
 		}
 	}()
 
 	syncCtx, syncCancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer syncCancel()
-	if !scc.WaitForCacheSync(syncCtx) {
+	if !c.WaitForCacheSync(syncCtx) {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
 
 	// ctx background cause informers are already started
-	inf, err := scc.GetInformerForKind(context.Background(), gvk)
+	inf, err := c.GetInformerForKind(context.Background(), gvk)
 	if err != nil {
 		cancel()
 		kindMatchErr := &meta.NoKindMatchError{}
@@ -163,44 +156,6 @@ func (r *Registry) RegisterCacheFromRestConfig(restCfg *rest.Config, gvk schema.
 	}
 	return nil
 }
-
-type startCountingCache struct {
-	log          logging.Logger
-	c            cache.Cache
-	startedTimes *atomic.Int32
-}
-
-func (s *startCountingCache) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
-	return s.c.Get(ctx, key, obj, opts...)
-}
-
-func (s *startCountingCache) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
-	return s.c.List(ctx, list, opts...)
-}
-
-func (s *startCountingCache) GetInformer(ctx context.Context, obj client.Object, opts ...cache.InformerGetOption) (cache.Informer, error) {
-	return s.c.GetInformer(ctx, obj, opts...)
-}
-
-func (s *startCountingCache) GetInformerForKind(ctx context.Context, gvk schema.GroupVersionKind, opts ...cache.InformerGetOption) (cache.Informer, error) {
-	return s.c.GetInformerForKind(ctx, gvk, opts...)
-}
-
-func (s *startCountingCache) Start(ctx context.Context) error {
-	s.startedTimes.Inc()
-	s.log.Info("started cache", "count", s.startedTimes.Load())
-	return s.c.Start(ctx)
-}
-
-func (s *startCountingCache) WaitForCacheSync(ctx context.Context) bool {
-	return s.c.WaitForCacheSync(ctx)
-}
-
-func (s *startCountingCache) IndexField(ctx context.Context, obj client.Object, field string, extractValue client.IndexerFunc) error {
-	return s.c.IndexField(ctx, obj, field, extractValue)
-}
-
-var _ cache.Cache = &startCountingCache{}
 
 func (r *Registry) StopAndRemove(restCfg *rest.Config, gvk schema.GroupVersionKind, nameNs types.NamespacedName) error {
 	r.mu.Lock()

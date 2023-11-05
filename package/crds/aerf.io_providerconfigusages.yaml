@@ -11,7 +11,7 @@ spec:
     categories:
     - crossplane
     - provider
-    - lambda
+    - kubernetes
     kind: ProviderConfigUsage
     listKind: ProviderConfigUsageList
     plural: providerconfigusages

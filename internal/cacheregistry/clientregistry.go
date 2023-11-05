@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	"go.uber.org/multierr"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/fields"
@@ -53,7 +54,20 @@ type cacheMapKey struct {
 	VersionedAPIPath string
 }
 
-func (r *Registry) RegisterCacheFromRestConfig(restCfg *rest.Config, gvk schema.GroupVersionKind, nameNs, parentNameNs types.NamespacedName) error {
+func (r *Registry) getCacheWithStopper(key cacheMapKey) (cacheWithStopper, bool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	val, ok := r.cacheMap[key]
+	return val, ok
+}
+
+func (r *Registry) setCacheWithStopper(key cacheMapKey, val cacheWithStopper) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.cacheMap[key] = val
+}
+
+func (r *Registry) RegisterCacheFromRestConfig(restCfg *rest.Config, gvk schema.GroupVersionKind, nameNs, parentNameNs types.NamespacedName) (retErr error) {
 	hostURL, versionedAPIPath, err := rest.DefaultServerUrlFor(restCfg)
 	if err != nil {
 		return err
@@ -68,14 +82,13 @@ func (r *Registry) RegisterCacheFromRestConfig(restCfg *rest.Config, gvk schema.
 		VersionedAPIPath: versionedAPIPath,
 	}
 
-	if _, ok := r.cacheMap[key]; ok {
+	if _, ok := r.getCacheWithStopper(key); ok {
 		log.Debug("cache already in registry")
 		return nil
 	}
 
 	unstr := &unstructured.Unstructured{}
 	unstr.SetGroupVersionKind(gvk)
-
 	{
 		cli, err := client.New(restCfg, client.Options{})
 		if err != nil {
@@ -111,16 +124,19 @@ func (r *Registry) RegisterCacheFromRestConfig(restCfg *rest.Config, gvk schema.
 		},
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create new cache: %s", err)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	r.mu.Lock()
-	r.cacheMap[key] = cacheWithStopper{
+	r.setCacheWithStopper(key, cacheWithStopper{
 		c:        c,
 		cancelFn: cancel,
-	}
-	r.mu.Unlock()
+	})
+	defer func() {
+		if retErr != nil {
+			retErr = multierr.Append(retErr, r.StopAndRemove(restCfg, gvk, nameNs))
+		}
+	}()
 
 	go func() {
 		log.Debug("starting cache")
@@ -138,7 +154,6 @@ func (r *Registry) RegisterCacheFromRestConfig(restCfg *rest.Config, gvk schema.
 	// ctx background cause informers are already started
 	inf, err := c.GetInformerForKind(context.Background(), gvk)
 	if err != nil {
-		cancel()
 		kindMatchErr := &meta.NoKindMatchError{}
 		switch {
 		case errors.As(err, &kindMatchErr):
@@ -151,7 +166,6 @@ func (r *Registry) RegisterCacheFromRestConfig(restCfg *rest.Config, gvk schema.
 	}
 
 	if err := r.registerFn(inf, parentNameNs); err != nil {
-		cancel()
 		return err
 	}
 	return nil

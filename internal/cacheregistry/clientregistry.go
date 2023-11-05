@@ -54,12 +54,12 @@ type cacheMapKey struct {
 	VersionedAPIPath string
 }
 
-func (p *Registry) RegisterCacheFromRestConfig(restCfg *rest.Config, gvk schema.GroupVersionKind, nameNs types.NamespacedName, parentNameNs types.NamespacedName) error {
+func (r *Registry) RegisterCacheFromRestConfig(restCfg *rest.Config, gvk schema.GroupVersionKind, nameNs, parentNameNs types.NamespacedName) error {
 	hostURL, versionedAPIPath, err := rest.DefaultServerUrlFor(restCfg)
 	if err != nil {
 		return err
 	}
-	log := p.log.WithValues("name", nameNs.Name, "namespace", nameNs.Namespace, "gvk", gvk, "hostURL", hostURL, "versionedAPIPath", versionedAPIPath)
+	log := r.log.WithValues("name", nameNs.Name, "namespace", nameNs.Namespace, "gvk", gvk, "hostURL", hostURL, "versionedAPIPath", versionedAPIPath)
 	key := cacheMapKey{
 		GVKWithNameNamespace: GVKWithNameNamespace{
 			GroupVersionKind: gvk,
@@ -69,7 +69,7 @@ func (p *Registry) RegisterCacheFromRestConfig(restCfg *rest.Config, gvk schema.
 		VersionedAPIPath: versionedAPIPath,
 	}
 
-	if _, ok := p.cacheMap[key]; ok {
+	if _, ok := r.cacheMap[key]; ok {
 		log.Debug("cache already in registry")
 		return nil
 	}
@@ -116,18 +116,18 @@ func (p *Registry) RegisterCacheFromRestConfig(restCfg *rest.Config, gvk schema.
 	}
 
 	scc := &startCountingCache{
-		log:          p.log,
+		log:          r.log,
 		c:            c,
 		startedTimes: atomic.NewInt32(0),
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	p.mu.Lock()
-	p.cacheMap[key] = cacheWithStopper{
+	r.mu.Lock()
+	r.cacheMap[key] = cacheWithStopper{
 		c:        scc,
 		cancelFn: cancel,
 	}
-	p.mu.Unlock()
+	r.mu.Unlock()
 
 	go func() {
 		log.Debug("starting cache")
@@ -142,7 +142,7 @@ func (p *Registry) RegisterCacheFromRestConfig(restCfg *rest.Config, gvk schema.
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
 
-	//ctx background cause informers are already started
+	// ctx background cause informers are already started
 	inf, err := scc.GetInformerForKind(context.Background(), gvk)
 	if err != nil {
 		cancel()
@@ -157,7 +157,7 @@ func (p *Registry) RegisterCacheFromRestConfig(restCfg *rest.Config, gvk schema.
 		}
 	}
 
-	if err := p.registerFn(inf, parentNameNs); err != nil {
+	if err := r.registerFn(inf, parentNameNs); err != nil {
 		cancel()
 		return err
 	}
@@ -202,9 +202,9 @@ func (s *startCountingCache) IndexField(ctx context.Context, obj client.Object, 
 
 var _ cache.Cache = &startCountingCache{}
 
-func (p *Registry) StopAndRemove(restCfg *rest.Config, gvk schema.GroupVersionKind, nameNs types.NamespacedName) error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
+func (r *Registry) StopAndRemove(restCfg *rest.Config, gvk schema.GroupVersionKind, nameNs types.NamespacedName) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
 	hostURL, versionedAPIPath, err := rest.DefaultServerUrlFor(restCfg)
 	if err != nil {
@@ -218,14 +218,14 @@ func (p *Registry) StopAndRemove(restCfg *rest.Config, gvk schema.GroupVersionKi
 		HostURL:          hostURL.String(),
 		VersionedAPIPath: versionedAPIPath,
 	}
-	c, ok := p.cacheMap[key]
+	c, ok := r.cacheMap[key]
 	if !ok {
 		return nil
 	}
 
-	p.log.Debug("stopping cache", "key", key)
+	r.log.Debug("stopping cache", "key", key)
 	c.cancelFn()
 	c.c = nil
-	delete(p.cacheMap, key)
+	delete(r.cacheMap, key)
 	return nil
 }

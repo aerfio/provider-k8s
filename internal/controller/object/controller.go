@@ -1,22 +1,9 @@
-/*
-Copyright 2020 The Crossplane Authors.
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-    http://www.apache.org/licenses/LICENSE-2.0
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package object
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"time"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/controller"
@@ -24,6 +11,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/event"
 	"github.com/crossplane/crossplane-runtime/pkg/fieldpath"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
+	"github.com/crossplane/crossplane-runtime/pkg/meta"
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
@@ -32,26 +20,30 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	ctrlcontroller "sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	objv1alpha1 "aerf.io/provider-k8s/apis/object/v1alpha1"
 	apisv1alpha1 "aerf.io/provider-k8s/apis/v1alpha1"
+	"aerf.io/provider-k8s/internal/cacheregistry"
 	"aerf.io/provider-k8s/internal/controller/generic"
-	"aerf.io/provider-k8s/internal/manageddiff"
+	"aerf.io/provider-k8s/internal/restcfgutil"
+	"aerf.io/provider-k8s/internal/safecmp"
 )
 
 const (
 	errNotObject    = "managed resource is not a Object custom resource"
-	errTrackPCUsage = "cannot track ProviderConfig usageTracker"
+	errTrackPCUsage = "cannot track ProviderConfig"
 	errGetPC        = "cannot get ProviderConfig"
 	errGetCreds     = "cannot get credentials"
 )
 
 // Setup adds a controller that reconciles Object managed resources.
-func Setup(mgr ctrl.Manager, o controller.Options) (ctrlcontroller.Controller, error) {
+func Setup(mgr ctrl.Manager, o controller.Options, registry *cacheregistry.Registry) error {
 	name := managed.ControllerName(objv1alpha1.ObjectGroupKind)
 
 	opts := []managed.ReconcilerOption{
@@ -59,20 +51,46 @@ func Setup(mgr ctrl.Manager, o controller.Options) (ctrlcontroller.Controller, e
 			client:       mgr.GetClient(),
 			usageTracker: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
 			logger:       o.Logger,
+			registry:     registry,
 		}),
 		managed.WithLogger(o.Logger.WithValues("controller", name)),
 		managed.WithPollInterval(o.PollInterval),
 		managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))),
+		managed.WithCreationGracePeriod(3 * time.Second),
 	}
 
 	r := managed.NewReconciler(mgr, resource.ManagedKind(objv1alpha1.ObjectGroupVersionKind), opts...)
 
-	return ctrl.NewControllerManagedBy(mgr).
+	objectController, err := ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(o.ForControllerRuntime()).
 		WithEventFilter(resource.DesiredStateChanged()).
 		For(&objv1alpha1.Object{}).
 		Build(ratelimiter.NewReconciler(name, r, o.GlobalRateLimiter))
+	if err != nil {
+		return err
+	}
+	registry.SetRegisterFn(func(inf cache.Informer, parentNameNs types.NamespacedName) error {
+		return objectController.Watch(&source.Informer{Informer: inf}, handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, c client.Object) []reconcile.Request {
+			o.Logger.WithValues("name", "object-controller-watch", "objectRef", nameNsGVK(c), "parentRef", parentNameNs).Debug("reconcile request")
+			return []reconcile.Request{
+				{
+					NamespacedName: parentNameNs,
+				},
+			}
+		}))
+	})
+	return nil
+}
+
+func nameNsGVK(obj client.Object) corev1.ObjectReference {
+	gvk := obj.GetObjectKind().GroupVersionKind()
+	return corev1.ObjectReference{
+		Kind:       gvk.Kind,
+		Namespace:  obj.GetNamespace(),
+		Name:       obj.GetName(),
+		APIVersion: gvk.GroupVersion().String(),
+	}
 }
 
 // A connector is expected to produce an ExternalClient when its Connect method
@@ -81,6 +99,7 @@ type connector struct {
 	client       client.Client
 	usageTracker resource.Tracker
 	logger       logging.Logger
+	registry     *cacheregistry.Registry
 }
 
 // Connect typically produces an ExternalClient by:
@@ -103,28 +122,9 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 		return nil, errors.Wrap(err, errGetPC)
 	}
 
-	var err error
-	var rc *rest.Config
-	switch cd := pc.Spec.Credentials; cd.Source {
-	case xpv1.CredentialsSourceInjectedIdentity:
-		rc, err = ctrl.GetConfig()
-		if err != nil {
-			return nil, errors.Wrap(err, "couldn't get rest.Config from in-cluster data")
-		}
-	default:
-		data, err := resource.CommonCredentialExtractor(ctx, cd.Source, c.client, cd.CommonCredentialSelectors)
-		if err != nil {
-			return nil, errors.Wrap(err, errGetCreds)
-		}
-		cfg, err := clientcmd.NewClientConfigFromBytes(data)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to create clientConfig from raw bytes")
-		}
-
-		rc, err = cfg.ClientConfig()
-		if err != nil {
-			return nil, fmt.Errorf("failed to create *rest.Config from kubeconfig: %s", err)
-		}
+	rc, err := restcfgutil.RestConfigFromProviderConfig(ctx, pc, c.client)
+	if err != nil {
+		return nil, err
 	}
 
 	remoteCli, err := client.New(rc, client.Options{})
@@ -133,25 +133,38 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 	}
 
 	return generic.NewExternalForType[*objv1alpha1.Object](&external{
-		localCli:  c.client,
-		remoteCli: remoteCli,
-		log:       c.logger,
+		localCli:      c.client,
+		remoteCli:     remoteCli,
+		log:           c.logger,
+		registry:      c.registry,
+		remoteRestCfg: rc,
 	}, errors.New(errNotObject)), nil
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
 // external resource to ensure it reflects the managed resource's desired state.
 type external struct {
-	localCli  client.Client
-	remoteCli client.Client
-	log       logging.Logger
+	localCli      client.Client
+	remoteCli     client.Client
+	log           logging.Logger
+	registry      *cacheregistry.Registry
+	remoteRestCfg *rest.Config
 }
 
 func (e *external) Observe(ctx context.Context, cr *objv1alpha1.Object) (managed.ExternalObservation, error) {
 	log := e.loggerFor(cr)
 	log.Debug("Observing", "reconciledObject", cr)
 
-	desired, err := e.getDesired(cr)
+	desired, err := cr.GetDesired()
+	if err != nil {
+		return managed.ExternalObservation{}, err
+	}
+
+	if meta.WasDeleted(cr) {
+		err = e.registry.StopAndRemove(e.remoteRestCfg, desired.GroupVersionKind(), client.ObjectKeyFromObject(desired))
+	} else {
+		err = e.registry.RegisterCacheFromRestConfig(e.remoteRestCfg, desired.GroupVersionKind(), client.ObjectKeyFromObject(desired), client.ObjectKeyFromObject(cr))
+	}
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
@@ -171,12 +184,6 @@ func (e *external) Observe(ctx context.Context, cr *objv1alpha1.Object) (managed
 		return managed.ExternalObservation{}, err
 	}
 
-	resourceUpToDate := !e.hasDrifted(observed, desired)
-
-	if resourceUpToDate {
-		cr.SetConditions(xpv1.Available())
-	}
-
 	return managed.ExternalObservation{
 		// Return false when the external resource does not exist. This lets
 		// the managed resource reconciler know that it needs to call Create to
@@ -186,16 +193,16 @@ func (e *external) Observe(ctx context.Context, cr *objv1alpha1.Object) (managed
 		// Return false when the external resource exists, but it not up to date
 		// with the desired managed resource state. This lets the managed
 		// resource reconciler know that it needs to call Update.
-		ResourceUpToDate: resourceUpToDate,
-		Diff:             manageddiff.SafeDiff(observed, desired),
-	}, nil
+		ResourceUpToDate: !e.hasDrifted(observed, desired),
+		Diff:             safecmp.DiffUnstructured(observed, desired),
+	}, errors.Wrap(e.setObserved(cr, observed), "failed to derive object status from the observed remote object")
 }
 
 func (e *external) Create(ctx context.Context, cr *objv1alpha1.Object) (managed.ExternalCreation, error) {
 	log := e.loggerFor(cr)
 	log.Debug("Creating")
 
-	desired, err := e.getDesired(cr)
+	desired, err := cr.GetDesired()
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
@@ -205,23 +212,19 @@ func (e *external) Create(ctx context.Context, cr *objv1alpha1.Object) (managed.
 
 	log.Debug("Created object", "object", desired)
 
-	return managed.ExternalCreation{}, e.updateConditionFromObserved(cr, desired)
+	return managed.ExternalCreation{}, errors.Wrap(e.setObserved(cr, desired), "failed to derive object status from the observed remote object")
 }
 
 func (e *external) Update(ctx context.Context, cr *objv1alpha1.Object) (managed.ExternalUpdate, error) {
 	e.loggerFor(cr).Debug("Updating")
 
-	desired, err := e.getDesired(cr)
+	desired, err := cr.GetDesired()
 	if err != nil {
 		return managed.ExternalUpdate{}, err
 	}
 
-	desiredCopy := desired.DeepCopy()
 	if err := e.Apply(ctx, desired); err != nil {
 		return managed.ExternalUpdate{}, err
-	}
-	if diff := manageddiff.SafeDiff(desiredCopy, desired); diff != "" {
-		e.loggerFor(cr).Debug("Difference between the reconciled object", "diff", diff)
 	}
 
 	return managed.ExternalUpdate{}, e.updateConditionFromObserved(cr, desired)
@@ -230,31 +233,21 @@ func (e *external) Update(ctx context.Context, cr *objv1alpha1.Object) (managed.
 func (e *external) Delete(ctx context.Context, cr *objv1alpha1.Object) error {
 	e.loggerFor(cr).Debug("Deleting")
 
-	desired, err := e.getDesired(cr)
+	desired, err := cr.GetDesired()
 	if err != nil {
 		return err
 	}
 
-	err = e.remoteCli.Delete(ctx, desired)
-	if apierrors.IsNotFound(err) {
-		return nil
+	if err := e.registry.StopAndRemove(e.remoteRestCfg, desired.GroupVersionKind(), client.ObjectKeyFromObject(desired)); err != nil {
+		return errors.Wrapf(err, "failed to stop the cache for cluster with host url %q, object gvk %q, name/ns %q", e.remoteRestCfg.Host, desired.GroupVersionKind(), client.ObjectKeyFromObject(desired))
 	}
 
-	return err
+	return errors.Wrap(client.IgnoreNotFound(e.remoteCli.Delete(ctx, desired)), "failed to delete external object")
 }
 
 func (e *external) loggerFor(obj client.Object) logging.Logger {
 	gvk := obj.GetObjectKind().GroupVersionKind()
 	return e.log.WithValues("name", obj.GetName(), "namespace", obj.GetNamespace(), "kind", gvk.Kind, "group", gvk.Group, "version", gvk.Version)
-}
-
-func (e *external) getDesired(obj *objv1alpha1.Object) (*unstructured.Unstructured, error) {
-	desired := &unstructured.Unstructured{}
-	if err := json.Unmarshal(obj.Spec.ForProvider.Manifest.Raw, desired); err != nil {
-		return nil, errors.Wrap(err, "cannot unmarshal raw manifest")
-	}
-
-	return desired, nil
 }
 
 func (e *external) Apply(ctx context.Context, obj client.Object, opts ...client.PatchOption) error {
@@ -297,6 +290,18 @@ func (e *external) updateConditionFromObserved(obj *objv1alpha1.Object, observed
 	default:
 		// should never happen
 		return errors.Errorf("unknown readiness policy %q", obj.Spec.Readiness.Policy)
+	}
+	return nil
+}
+
+func (e *external) setObserved(obj *objv1alpha1.Object, observed *unstructured.Unstructured) error {
+	var err error
+	if obj.Status.AtProvider.Manifest.Raw, err = observed.MarshalJSON(); err != nil {
+		return errors.Wrap(err, "failed to marshal")
+	}
+
+	if err := e.updateConditionFromObserved(obj, observed); err != nil {
+		return err
 	}
 	return nil
 }

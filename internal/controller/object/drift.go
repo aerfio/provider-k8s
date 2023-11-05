@@ -5,6 +5,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
+// content of this file has been heavily influenced (copied even) from github.com/fluxcd/pkg/ssa library
+
 // hasDrifted detects changes to metadata labels, annotations and spec.
 func (e *external) hasDrifted(existingObject, dryRunObject *unstructured.Unstructured) bool {
 	if dryRunObject.GetResourceVersion() == "" {

@@ -104,6 +104,20 @@ A Object is an provider Kubernetes API type
 | `status` _[ObjectStatus](#objectstatus)_ |  |
 
 
+#### ObjectObservation
+
+
+
+ObjectObservation are the observable fields of a Object.
+
+_Appears in:_
+- [ObjectStatus](#objectstatus)
+
+| Field | Description |
+| --- | --- |
+| `manifest` _[RawExtension](#rawextension)_ | Raw YAML representation of the remote object. |
+
+
 #### ObjectParameters
 
 
@@ -151,6 +165,7 @@ _Appears in:_
 | --- | --- |
 | `observedGeneration` _integer_ |  |
 | `conditions` _[Condition](#condition) array_ | Conditions of the resource. |
+| `atProvider` _[ObjectObservation](#objectobservation)_ |  |
 
 
 #### Readiness

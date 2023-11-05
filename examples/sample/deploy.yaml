@@ -1,0 +1,32 @@
+apiVersion: k8s.aerf.io/v1alpha1
+kind: Object
+metadata:
+  name: deploy-ex
+spec:
+  forProvider:
+    manifest:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        labels:
+          app: my-dep
+        name: my-dep
+        namespace: default
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: my-dep
+        strategy: {}
+        template:
+          metadata:
+            labels:
+              app: my-dep
+          spec:
+            containers:
+              - image: nginx
+                name: nginx
+  providerConfigRef:
+    name: example
+  readiness:
+    policy: SuccessfulCreate

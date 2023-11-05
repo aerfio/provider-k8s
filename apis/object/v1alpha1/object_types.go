@@ -1,13 +1,15 @@
 package v1alpha1
 
 import (
+	"encoding/json"
 	"reflect"
 
+	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
+	"github.com/crossplane/crossplane-runtime/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-
-	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 
 	"aerf.io/provider-k8s/internal/controller/generic"
 )
@@ -39,6 +41,15 @@ type StatusWithObservedGeneration struct {
 type ObjectStatus struct {
 	StatusWithObservedGeneration `json:",inline"`
 	xpv1.ResourceStatus          `json:",inline"`
+	AtProvider                   ObjectObservation `json:"atProvider,omitempty"`
+}
+
+// ObjectObservation are the observable fields of a Object.
+type ObjectObservation struct {
+	// Raw YAML representation of the remote object.
+	// +kubebuilder:validation:EmbeddedResource
+	// +kubebuilder:pruning:PreserveUnknownFields
+	Manifest runtime.RawExtension `json:"manifest,omitempty"`
 }
 
 // ReadinessPolicy defines how the Object's readiness condition should be computed.
@@ -112,4 +123,13 @@ var _ generic.ObservedGenerationSetter = &Object{}
 
 func (o *Object) SetObservedGeneration(arg int64) {
 	o.Status.ObservedGeneration = arg
+}
+
+func (o *Object) GetDesired() (*unstructured.Unstructured, error) {
+	desired := &unstructured.Unstructured{}
+	if err := json.Unmarshal(o.Spec.ForProvider.Manifest.Raw, desired); err != nil {
+		return nil, errors.Wrap(err, "cannot unmarshal raw manifest")
+	}
+
+	return desired, nil
 }

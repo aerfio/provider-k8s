@@ -277,6 +277,15 @@ spec:
           status:
             description: A ObjectStatus represents the observed state of a Object.
             properties:
+              atProvider:
+                description: ObjectObservation are the observable fields of a Object.
+                properties:
+                  manifest:
+                    description: Raw YAML representation of the remote object.
+                    type: object
+                    x-kubernetes-embedded-resource: true
+                    x-kubernetes-preserve-unknown-fields: true
+                type: object
               conditions:
                 description: Conditions of the resource.
                 items:

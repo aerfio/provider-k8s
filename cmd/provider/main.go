@@ -34,8 +34,8 @@ import (
 	objv1alpha1 "aerf.io/provider-k8s/apis/object/v1alpha1"
 	"aerf.io/provider-k8s/apis/v1alpha1"
 	"aerf.io/provider-k8s/internal/cacheregistry"
-	configcontroller "aerf.io/provider-k8s/internal/controller/config"
-	"aerf.io/provider-k8s/internal/controller/object"
+	configcontroller "aerf.io/provider-k8s/internal/controllers/config"
+	"aerf.io/provider-k8s/internal/controllers/object"
 )
 
 type config struct {

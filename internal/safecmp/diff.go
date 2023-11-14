@@ -7,6 +7,9 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
+// cmp.Diff is NOT safe for production code (it may panic), as documented in
+// https://pkg.go.dev/github.com/google/go-cmp/cmp.
+// This version recovers the panic and returns it's error as the diff.
 func Diff(x, y any, opts ...cmp.Option) (out string) {
 	defer func() {
 		if r := recover(); r != nil {

@@ -2,7 +2,6 @@ package restcfgutil
 
 import (
 	"context"
-	"fmt"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/errors"
@@ -16,29 +15,21 @@ import (
 )
 
 func RestConfigFromProviderConfig(ctx context.Context, pc *apisv1alpha1.ProviderConfig, cli client.Client) (*rest.Config, error) {
-	var err error
-	var rc *rest.Config
-	switch cd := pc.Spec.Credentials; cd.Source {
-	case xpv1.CredentialsSourceInjectedIdentity:
-		rc, err = ctrl.GetConfig()
-		if err != nil {
-			return nil, errors.Wrap(err, "couldn't get rest.Config from in-cluster data")
-		}
-	default:
-		data, err := resource.CommonCredentialExtractor(ctx, cd.Source, cli, cd.CommonCredentialSelectors)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to get credentials")
-		}
-		cfg, err := clientcmd.NewClientConfigFromBytes(data)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to create clientConfig from raw bytes")
-		}
-
-		rc, err = cfg.ClientConfig()
-		if err != nil {
-			return nil, fmt.Errorf("failed to create *rest.Config from kubeconfig: %s", err)
-		}
-
+	cd := pc.Spec.Credentials
+	if cd.Source == xpv1.CredentialsSourceInjectedIdentity {
+		rc, err := ctrl.GetConfig()
+		return rc, errors.Wrap(err, "couldn't get rest.Config from in-cluster data")
 	}
-	return rc, nil
+
+	data, err := resource.CommonCredentialExtractor(ctx, cd.Source, cli, cd.CommonCredentialSelectors)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get credentials")
+	}
+	cfg, err := clientcmd.NewClientConfigFromBytes(data)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create clientConfig from raw bytes")
+	}
+
+	rc, err := cfg.ClientConfig()
+	return rc, errors.Wrap(err, "failed to create *rest.Config from kubeconfig")
 }

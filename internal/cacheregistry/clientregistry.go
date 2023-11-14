@@ -20,21 +20,22 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type cacheWithStopper struct {
-	c        cache.Cache
+type cacheWithCancel struct {
+	cache    cache.Cache
 	cancelFn context.CancelFunc
+	wg       *sync.WaitGroup
 }
 
 type Registry struct {
 	mu         sync.Mutex
-	cacheMap   map[cacheMapKey]cacheWithStopper
+	cacheMap   map[cacheMapKey]cacheWithCancel
 	log        logging.Logger
 	registerFn func(cache.Informer, types.NamespacedName) error
 }
 
 func New(log logging.Logger) *Registry {
 	return &Registry{
-		cacheMap: make(map[cacheMapKey]cacheWithStopper),
+		cacheMap: make(map[cacheMapKey]cacheWithCancel),
 		log:      log,
 	}
 }
@@ -54,14 +55,14 @@ type cacheMapKey struct {
 	VersionedAPIPath string
 }
 
-func (r *Registry) getCacheWithStopper(key cacheMapKey) (cacheWithStopper, bool) {
+func (r *Registry) getCacheWithStopper(key cacheMapKey) (cacheWithCancel, bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	val, ok := r.cacheMap[key]
 	return val, ok
 }
 
-func (r *Registry) setCacheWithStopper(key cacheMapKey, val cacheWithStopper) {
+func (r *Registry) setCacheWithStopper(key cacheMapKey, val cacheWithCancel) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.cacheMap[key] = val
@@ -128,9 +129,11 @@ func (r *Registry) RegisterCacheFromRestConfig(restCfg *rest.Config, gvk schema.
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	r.setCacheWithStopper(key, cacheWithStopper{
-		c:        c,
+	wg := &sync.WaitGroup{}
+	r.setCacheWithStopper(key, cacheWithCancel{
+		cache:    c,
 		cancelFn: cancel,
+		wg:       wg,
 	})
 	defer func() {
 		if retErr != nil {
@@ -138,7 +141,9 @@ func (r *Registry) RegisterCacheFromRestConfig(restCfg *rest.Config, gvk schema.
 		}
 	}()
 
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		log.Debug("starting cache")
 		if err := c.Start(ctx); err != nil {
 			log.Info(fmt.Sprintf("failed to run cache: %s", err))
@@ -171,7 +176,7 @@ func (r *Registry) RegisterCacheFromRestConfig(restCfg *rest.Config, gvk schema.
 	return nil
 }
 
-func (r *Registry) StopAndRemove(restCfg *rest.Config, gvk schema.GroupVersionKind, nameNs types.NamespacedName) error {
+func (r *Registry) StopAndRemove(restCfg *rest.Config, gvk schema.GroupVersionKind, childNameNs types.NamespacedName) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -182,7 +187,7 @@ func (r *Registry) StopAndRemove(restCfg *rest.Config, gvk schema.GroupVersionKi
 	key := cacheMapKey{
 		GVKWithNameNamespace: GVKWithNameNamespace{
 			GroupVersionKind: gvk,
-			NamespacedName:   nameNs,
+			NamespacedName:   childNameNs,
 		},
 		HostURL:          hostURL.String(),
 		VersionedAPIPath: versionedAPIPath,
@@ -191,9 +196,13 @@ func (r *Registry) StopAndRemove(restCfg *rest.Config, gvk schema.GroupVersionKi
 	if !ok {
 		return nil
 	}
+	log := r.log.WithValues("key", key)
 
-	r.log.Debug("stopping cache", "key", key)
+	log.Debug("stopping cache")
 	c.cancelFn()
+	now := time.Now()
+	c.wg.Wait()
+	log.Debug("waited some time for cache to stop", "duration", time.Since(now))
 	delete(r.cacheMap, key)
 	return nil
 }

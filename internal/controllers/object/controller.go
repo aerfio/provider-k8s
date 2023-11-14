@@ -31,7 +31,7 @@ import (
 	apisv1alpha1 "aerf.io/provider-k8s/apis/v1alpha1"
 	"aerf.io/provider-k8s/internal/cacheregistry"
 	"aerf.io/provider-k8s/internal/celcheck"
-	"aerf.io/provider-k8s/internal/controller/generic"
+	"aerf.io/provider-k8s/internal/controllers/generic"
 	"aerf.io/provider-k8s/internal/restcfgutil"
 	"aerf.io/provider-k8s/internal/safecmp"
 )

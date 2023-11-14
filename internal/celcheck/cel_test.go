@@ -89,6 +89,18 @@ status.availableReplicas == spec.replicas`,
 			input: readyDeploy,
 			want:  true,
 		},
+		{
+			name:       "empty expression",
+			expression: "",
+			input:      `{"object": "some-value"}`,
+			wantErr:    true,
+		},
+		{
+			name:       "null input",
+			expression: "has(metadata.generation)",
+			input:      `null`,
+			wantErr:    true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

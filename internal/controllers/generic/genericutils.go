@@ -11,7 +11,7 @@ type ObservedGenerationSetter interface {
 	SetObservedGeneration(int64)
 }
 
-type GenericExternalClient[T resource.Managed] interface {
+type ExternalClient[T resource.Managed] interface {
 	// Observe the external resource the supplied Managed resource
 	// represents, if any. Observe implementations must not modify the
 	// external resource, but may update the supplied Managed resource to
@@ -37,19 +37,19 @@ type GenericExternalClient[T resource.Managed] interface {
 	Delete(ctx context.Context, mg T) error
 }
 
-func NewExternalForType[T resource.Managed](specificExternal GenericExternalClient[T], errNotConfiguredType error) *GeneralExternal[T] {
-	return &GeneralExternal[T]{
+func NewExternalForType[T resource.Managed](specificExternal ExternalClient[T], errNotConfiguredType error) *ExternalAdapter[T] {
+	return &ExternalAdapter[T]{
 		genericExternal:      specificExternal,
 		errNotConfiguredType: errNotConfiguredType,
 	}
 }
 
-type GeneralExternal[T resource.Managed] struct {
-	genericExternal      GenericExternalClient[T]
+type ExternalAdapter[T resource.Managed] struct {
+	genericExternal      ExternalClient[T]
 	errNotConfiguredType error
 }
 
-func (g *GeneralExternal[T]) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
+func (g *ExternalAdapter[T]) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
 	cr, ok := mg.(T)
 	if !ok {
 		return managed.ExternalObservation{}, g.errNotConfiguredType
@@ -62,7 +62,7 @@ func (g *GeneralExternal[T]) Observe(ctx context.Context, mg resource.Managed) (
 	return g.genericExternal.Observe(ctx, cr)
 }
 
-func (g *GeneralExternal[T]) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
+func (g *ExternalAdapter[T]) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
 	cr, ok := mg.(T)
 	if !ok {
 		return managed.ExternalCreation{}, g.errNotConfiguredType
@@ -74,7 +74,7 @@ func (g *GeneralExternal[T]) Create(ctx context.Context, mg resource.Managed) (m
 	return g.genericExternal.Create(ctx, cr)
 }
 
-func (g *GeneralExternal[T]) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
+func (g *ExternalAdapter[T]) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
 	cr, ok := mg.(T)
 	if !ok {
 		return managed.ExternalUpdate{}, g.errNotConfiguredType
@@ -86,7 +86,7 @@ func (g *GeneralExternal[T]) Update(ctx context.Context, mg resource.Managed) (m
 	return g.genericExternal.Update(ctx, cr)
 }
 
-func (g *GeneralExternal[T]) Delete(ctx context.Context, mg resource.Managed) error {
+func (g *ExternalAdapter[T]) Delete(ctx context.Context, mg resource.Managed) error {
 	cr, ok := mg.(T)
 	if !ok {
 		return g.errNotConfiguredType

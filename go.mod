@@ -4,7 +4,7 @@ go 1.21.4
 
 require (
 	github.com/alecthomas/kong v0.8.1
-	github.com/crossplane/crossplane-runtime v1.14.1
+	github.com/crossplane/crossplane-runtime v1.14.2
 	github.com/go-logr/logr v1.3.0
 	github.com/google/cel-go v0.16.1 // version from k8s.io/apiserver
 	github.com/google/go-cmp v0.6.0

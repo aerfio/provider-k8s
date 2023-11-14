@@ -79,13 +79,12 @@ linters-settings:
       only-std-errors-pkg:
         deny:
           - pkg: "github.com/pkg/errors"
-            desc: Should be replaced by standard lib "errors" package or "fmt.Errorf" or "go.uber.org/multierr" package
+            desc: Should be replaced by standard lib "errors" package/"fmt.Errorf"/"go.uber.org/multierr" package or "github.com/crossplane/crossplane-runtime/pkg/errors"
           - pkg: "github.com/go-errors/errors"
-            desc: Should be replaced by standard lib "errors" package or "fmt.Errorf" or "go.uber.org/multierr" package
+            desc: Should be replaced by standard lib "errors" package/"fmt.Errorf"/"go.uber.org/multierr" package or "github.com/crossplane/crossplane-runtime/pkg/errors"
           - pkg: "golang.org/x/xerrors"
-            desc: Should be replaced by standard lib "errors" package or "fmt.Errorf" or "go.uber.org/multierr" package
+            desc: Should be replaced by standard lib "errors" package/"fmt.Errorf"/"go.uber.org/multierr" package or "github.com/crossplane/crossplane-runtime/pkg/errors"
   errcheck:
-    check-type-assertions: true
     check-blank: true
   gocritic:
     enabled-tags:

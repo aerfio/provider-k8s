@@ -31,7 +31,6 @@ clean:
 
 .PHONY: generate
 generate: ${ANGRYJET} ${CRD_REF_DOCS} generate-crds
-
 	$(ANGRYJET) generate-methodsets --header-file=./hack/boilerplate.go.txt ./...
 	$(CRD_REF_DOCS) --source-path=${CURRENT_DIR}/apis --config=crd-ref-docs-config.yaml --renderer=markdown --output-path=./docs/crd-docs.md
 

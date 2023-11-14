@@ -194,7 +194,6 @@ func (r *Registry) StopAndRemove(restCfg *rest.Config, gvk schema.GroupVersionKi
 
 	r.log.Debug("stopping cache", "key", key)
 	c.cancelFn()
-	c.c = nil
 	delete(r.cacheMap, key)
 	return nil
 }

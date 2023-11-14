@@ -242,15 +242,26 @@ spec:
                   should be computed, if not specified it will be considered ready
                   as soon as the underlying external resource is considered up-to-date.
                 properties:
+                  celExpression:
+                    description: '`celExpression` defines the CEL expression that
+                      should be executed to compute whether the Object is ready. It
+                      must return boolean value. See docs for examples.'
+                    type: string
                   policy:
                     default: SuccessfulCreate
-                    description: Policy defines how the Object's readiness condition
-                      should be computed.
+                    description: '`policy` defines how the Object''s readiness condition
+                      should be computed.'
                     enum:
                     - SuccessfulCreate
                     - DeriveFromObject
+                    - UseCELExpression
                     type: string
                 type: object
+                x-kubernetes-validations:
+                - message: celExpression should be set only if policy is equal to
+                    UseCELExpression
+                  rule: 'self.policy == ''UseCELExpression'' ? has(self.celExpression)
+                    : !has(self.celExpression)'
               writeConnectionSecretToRef:
                 description: WriteConnectionSecretToReference specifies the namespace
                   and name of a Secret to which any connection details for this managed

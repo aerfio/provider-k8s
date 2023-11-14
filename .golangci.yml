@@ -1,7 +1,7 @@
 run:
   skip-files:
     - "zz_generated\\..+\\.go$"
-
+  modules-download-mode: "readonly"
 linters:
   disable-all: true
   enable:
@@ -26,8 +26,6 @@ linters:
     - staticcheck
     - goimports
     - gofmt
-    - gocheckcompilerdirectives
-    - loggercheck
     - nilerr
     - tenv
     - usestdlibvars

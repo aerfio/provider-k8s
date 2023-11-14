@@ -64,17 +64,22 @@ const (
 	// and each condition has to have `type`, `status` and `meesage` fields.
 	// Additionally, if the object has the optional `status.observedGeneration it is also used to compute its readiness
 	ReadinessPolicyDeriveFromObject ReadinessPolicy = "DeriveFromObject"
+	// ReadinessPolicyUseCELExpression means the object is marked ready if the celExpression returns true.
+	ReadinessPolicyUseCELExpression ReadinessPolicy = "UseCELExpression"
 )
 
 // Readiness defines how the object's readiness condition should be computed,
 // if not specified it will be considered ready as soon as the underlying external
 // resource is considered up-to-date.
+// +kubebuilder:validation:XValidation:rule="self.policy == 'UseCELExpression' ? has(self.celExpression) : !has(self.celExpression)",message="celExpression should be set only if policy is equal to UseCELExpression"
 type Readiness struct {
-	// Policy defines how the Object's readiness condition should be computed.
+	// `policy` defines how the Object's readiness condition should be computed.
 	// +optional
-	// +kubebuilder:validation:Enum=SuccessfulCreate;DeriveFromObject
+	// +kubebuilder:validation:Enum=SuccessfulCreate;DeriveFromObject;UseCELExpression
 	// +kubebuilder:default=SuccessfulCreate
 	Policy ReadinessPolicy `json:"policy,omitempty"`
+	// `celExpression` defines the CEL expression that should be executed to compute whether the Object is ready. It must return boolean value. See docs for examples.
+	CELExpression string `json:"celExpression,omitempty"`
 }
 
 // +kubebuilder:object:root=true

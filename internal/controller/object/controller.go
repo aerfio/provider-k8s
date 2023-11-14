@@ -30,6 +30,7 @@ import (
 	objv1alpha1 "aerf.io/provider-k8s/apis/object/v1alpha1"
 	apisv1alpha1 "aerf.io/provider-k8s/apis/v1alpha1"
 	"aerf.io/provider-k8s/internal/cacheregistry"
+	"aerf.io/provider-k8s/internal/celcheck"
 	"aerf.io/provider-k8s/internal/controller/generic"
 	"aerf.io/provider-k8s/internal/restcfgutil"
 	"aerf.io/provider-k8s/internal/safecmp"
@@ -72,7 +73,7 @@ func Setup(mgr ctrl.Manager, o controller.Options, registry *cacheregistry.Regis
 	}
 	registry.SetRegisterFn(func(inf cache.Informer, parentNameNs types.NamespacedName) error {
 		return objectController.Watch(&source.Informer{Informer: inf}, handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, c client.Object) []reconcile.Request {
-			o.Logger.WithValues("name", "object-controller-watch", "objectRef", nameNsGVK(c), "parentRef", parentNameNs).Debug("reconcile request")
+			o.Logger.WithValues("name", "object-controller-watch", "objectRef", meta.TypedReferenceTo(c, c.GetObjectKind().GroupVersionKind()), "parentRef", parentNameNs).Debug("enqueuing reconcile request")
 			return []reconcile.Request{
 				{
 					NamespacedName: parentNameNs,
@@ -81,16 +82,6 @@ func Setup(mgr ctrl.Manager, o controller.Options, registry *cacheregistry.Regis
 		}))
 	})
 	return nil
-}
-
-func nameNsGVK(obj client.Object) corev1.ObjectReference {
-	gvk := obj.GetObjectKind().GroupVersionKind()
-	return corev1.ObjectReference{
-		Kind:       gvk.Kind,
-		Namespace:  obj.GetNamespace(),
-		Name:       obj.GetName(),
-		APIVersion: gvk.GroupVersion().String(),
-	}
 }
 
 // A connector is expected to produce an ExternalClient when its Connect method
@@ -124,7 +115,7 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 
 	rc, err := restcfgutil.RestConfigFromProviderConfig(ctx, pc, c.client)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, errGetCreds)
 	}
 
 	remoteCli, err := client.New(rc, client.Options{})
@@ -287,6 +278,18 @@ func (e *external) updateConditionFromObserved(obj *objv1alpha1.Object, observed
 		obj.SetConditions(xpv1.Available())
 	case objv1alpha1.ReadinessPolicySuccessfulCreate, "":
 		obj.SetConditions(xpv1.Available())
+	case objv1alpha1.ReadinessPolicyUseCELExpression:
+		ready, err := celcheck.Eval(obj.Spec.Readiness.CELExpression, observed.UnstructuredContent())
+		if err != nil {
+			return errors.Wrap(err, "failed to run CEL expression on observed object")
+		}
+		cond := xpv1.Unavailable()
+		if ready {
+			cond = xpv1.Available()
+		}
+		obj.SetConditions(cond)
+
+		return nil
 	default:
 		// should never happen
 		return errors.Errorf("unknown readiness policy %q", obj.Spec.Readiness.Policy)

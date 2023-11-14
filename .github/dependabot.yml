@@ -8,6 +8,9 @@ updates:
       k8s-deps:
         patterns:
           - "k8s.io/*"
+    ignore:
+      # ignore all cel-go updates, it should be updated indirectly by bumping k8s.io/apiserver
+      - dependency-name: "github.com/google/cel-go"
   - package-ecosystem: "docker"
     directory: "/"
     schedule:

@@ -29,4 +29,15 @@ spec:
   providerConfigRef:
     name: example
   readiness:
-    policy: SuccessfulCreate
+    policy: UseCELExpression
+    celExpression: |
+      has(metadata.generation) &&
+      has(status.observedGeneration) &&
+      metadata.generation>=status.observedGeneration &&
+      has(status.replicas) &&
+      has(status.updatedReplicas) &&
+      has(status.availableReplicas) &&
+      has(spec.replicas) &&
+      status.updatedReplicas == spec.replicas &&
+      status.replicas == spec.replicas &&
+      status.availableReplicas == spec.replicas

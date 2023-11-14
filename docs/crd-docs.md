@@ -179,7 +179,8 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `policy` _[ReadinessPolicy](#readinesspolicy)_ | Policy defines how the Object's readiness condition should be computed. |
+| `policy` _[ReadinessPolicy](#readinesspolicy)_ | `policy` defines how the Object's readiness condition should be computed. |
+| `celExpression` _string_ | `celExpression` defines the CEL expression that should be executed to compute whether the Object is ready. It must return boolean value. See docs for examples. |
 
 
 #### ReadinessPolicy

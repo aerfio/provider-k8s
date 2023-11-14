@@ -91,6 +91,11 @@ func TestRestConfigFromProviderConfig(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.setupFn != nil {
+				tt.setupFn(t)
+			}
+
+			t.Logf("kubecfg: %s", os.Getenv("KUBECONFIG"))
 			_, err := RestConfigFromProviderConfig(context.Background(), tt.pc, tt.cli)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("RestConfigFromProviderConfig() error = %v, wantErr %v", err, tt.wantErr)

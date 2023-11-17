@@ -17,8 +17,8 @@
         '^Makefile$',
       ],
       matchStrings: [
-        "GOLANGCI_VERSION: 'v(?<currentValue>.*?)'\\n",
-        'GOLANGCILINT_VERSION = (?<currentValue>.*?)\\n',
+        "GOLANGCI_LINT_VERSION: 'v(?<currentValue>.*?)'\\n",
+        'GOLANGCI_LINT_VERSION = (?<currentValue>.*?)\\n',
       ],
       datasourceTemplate: 'github-tags',
       depNameTemplate: 'golangci/golangci-lint',

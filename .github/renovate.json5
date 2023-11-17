@@ -3,6 +3,9 @@
   extends: [
     'config:recommended',
   ],
+  // The maximum number of PRs to be created in parallel
+  "prConcurrentLimit": 0,
+  "prHourlyLimit": 0,
   postUpdateOptions: [
     'gomodTidy',
   ],

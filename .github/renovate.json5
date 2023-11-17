@@ -1,0 +1,92 @@
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  extends: [
+    'config:recommended',
+  ],
+  postUpdateOptions: [
+    'gomodTidy',
+  ],
+  labels: [
+    'automated',
+  ],
+  regexManagers: [
+    {
+      description: 'Bump golangci-lint version in workflows and the Makefile',
+      fileMatch: [
+        '^\\.github\\/workflows\\/[^/]+\\.ya?ml$',
+        '^Makefile$',
+      ],
+      matchStrings: [
+        "GOLANGCI_VERSION: 'v(?<currentValue>.*?)'\\n",
+        'GOLANGCILINT_VERSION = (?<currentValue>.*?)\\n',
+      ],
+      datasourceTemplate: 'github-tags',
+      depNameTemplate: 'golangci/golangci-lint',
+      extractVersionTemplate: '^v(?<version>.*)$',
+    },
+  ],
+  vulnerabilityAlerts: {
+    enabled: true,
+  },
+  osvVulnerabilityAlerts: true,
+  packageRules: [
+    {
+      description: 'Only get docker image updates every week to reduce noise',
+      matchDatasources: [
+        'docker',
+      ],
+      schedule: [
+        'every week on monday',
+      ],
+      enabled: true,
+    },
+    {
+      description: 'Ignore k8s.io/client-go older versions, they switched to semantic version and old tags are still available in the repo',
+      matchDatasources: [
+        'go',
+      ],
+      matchDepNames: [
+        'k8s.io/client-go',
+      ],
+      allowedVersions: '<1.0',
+    },
+    {
+      description: 'Only get dependency digest updates every month to reduce noise',
+      matchDatasources: [
+        'go',
+      ],
+      matchUpdateTypes: [
+        'digest',
+      ],
+      extends: [
+        'schedule:monthly',
+      ],
+    },
+    {
+      description: 'Single PR for all kubernetes dependency updates, as they usually are all linked',
+      matchDatasources: [
+        'go',
+      ],
+      groupName: 'kubernetes deps',
+      matchUpdateTypes: [
+        'major',
+        'minor',
+        'patch',
+      ],
+      matchPackagePrefixes: [
+        'k8s.io',
+        'sigs.k8s.io',
+      ],
+    },
+    {
+      description: 'Ignore cel-go, it should be bumped by bumping k8s.io/apiserver',
+      matchDepTypes: [
+        'action',
+      ],
+      matchDepNames: [
+        'google/cel-go',
+      ],
+      enabled: false,
+    },
+  ],
+}

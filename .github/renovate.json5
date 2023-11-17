@@ -21,12 +21,36 @@
       ],
       matchStrings: [
         "GOLANGCI_LINT_VERSION: 'v(?<currentValue>.*?)'\\n",
-        'GOLANGCI_LINT_VERSION = (?<currentValue>.*?)\\n',
+        'GOLANGCI_LINT_VERSION ?= (?<currentValue>.*?)\\n',
       ],
       datasourceTemplate: 'github-tags',
       depNameTemplate: 'golangci/golangci-lint',
       extractVersionTemplate: '^v(?<version>.*)$',
     },
+    {
+      description: 'Bump crd-ref-docs version in Makefile',
+      fileMatch: [
+        '^Makefile$',
+      ],
+      matchStrings: [
+        'CRD_REF_DOCS_VERSION ?= (?<currentValue>.*?)\\n',
+      ],
+      datasourceTemplate: 'github-tags',
+      depNameTemplate: 'elastic/crd-ref-docs',
+      extractVersionTemplate: '^v(?<version>.*)$',
+    },
+    {
+      description: 'Bump controller-tools version in Makefile',
+      fileMatch: [
+        '^Makefile$',
+      ],
+      matchStrings: [
+        'CONTROLLER_TOOLS_VERSION ?= (?<currentValue>.*?)\\n',
+      ],
+      datasourceTemplate: 'github-tags',
+      depNameTemplate: 'kubernetes-sigs/controller-tools',
+      extractVersionTemplate: '^v(?<version>.*)$',
+    }
   ],
   vulnerabilityAlerts: {
     enabled: true,

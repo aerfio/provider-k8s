@@ -68,12 +68,7 @@
     },
     {
       description: 'Ignore cel-go, it should be bumped by bumping k8s.io/apiserver',
-      matchDepTypes: [
-        'action',
-      ],
-      matchDepNames: [
-        'google/cel-go',
-      ],
+      "matchPackagePatterns": [".+\/cel-go$"],
       enabled: false,
     },
   ],

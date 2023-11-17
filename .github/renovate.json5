@@ -36,7 +36,7 @@
         'docker',
       ],
       schedule: [
-        'every week on monday',
+        'every monday',
       ],
       enabled: true,
     },
@@ -49,18 +49,6 @@
         'k8s.io/client-go',
       ],
       allowedVersions: '<1.0',
-    },
-    {
-      description: 'Only get dependency digest updates every month to reduce noise',
-      matchDatasources: [
-        'go',
-      ],
-      matchUpdateTypes: [
-        'digest',
-      ],
-      extends: [
-        'schedule:monthly',
-      ],
     },
     {
       description: 'Single PR for all kubernetes dependency updates, as they usually are all linked',

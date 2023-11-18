@@ -15,13 +15,14 @@
   regexManagers: [
     {
       description: 'Bump golangci-lint version in workflows and the Makefile',
+      automerge: true,
       fileMatch: [
         '^\\.github\\/workflows\\/[^/]+\\.ya?ml$',
         '^Makefile$',
       ],
       matchStrings: [
         "GOLANGCI_LINT_VERSION: 'v(?<currentValue>.*?)'\\n",
-        'GOLANGCI_LINT_VERSION ?= (?<currentValue>.*?)\\n',
+        'GOLANGCI_LINT_VERSION ?= v(?<currentValue>.*?)\\n',
       ],
       datasourceTemplate: 'github-tags',
       depNameTemplate: 'golangci/golangci-lint',
@@ -29,11 +30,12 @@
     },
     {
       description: 'Bump crd-ref-docs version in Makefile',
+      automerge: true,
       fileMatch: [
         '^Makefile$',
       ],
       matchStrings: [
-        'CRD_REF_DOCS_VERSION ?= (?<currentValue>.*?)\\n',
+        'CRD_REF_DOCS_VERSION ?= v(?<currentValue>.*?)\\n',
       ],
       datasourceTemplate: 'github-tags',
       depNameTemplate: 'elastic/crd-ref-docs',
@@ -41,11 +43,12 @@
     },
     {
       description: 'Bump controller-tools version in Makefile',
+      automerge: true,
       fileMatch: [
         '^Makefile$',
       ],
       matchStrings: [
-        'CONTROLLER_TOOLS_VERSION ?= (?<currentValue>.*?)\\n',
+        'CONTROLLER_TOOLS_VERSION ?= v(?<currentValue>.*?)\\n',
       ],
       datasourceTemplate: 'github-tags',
       depNameTemplate: 'kubernetes-sigs/controller-tools',
@@ -59,6 +62,7 @@
   packageRules: [
     {
       description: 'Only get docker image updates every week to reduce noise',
+      automerge: true,
       matchDatasources: [
         'docker',
       ],

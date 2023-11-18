@@ -15,6 +15,7 @@
   regexManagers: [
     {
       description: 'Bump golangci-lint version in workflows and the Makefile',
+      automerge: true,
       fileMatch: [
         '^\\.github\\/workflows\\/[^/]+\\.ya?ml$',
         '^Makefile$',
@@ -29,6 +30,7 @@
     },
     {
       description: 'Bump crd-ref-docs version in Makefile',
+      automerge: true,
       fileMatch: [
         '^Makefile$',
       ],
@@ -41,6 +43,7 @@
     },
     {
       description: 'Bump controller-tools version in Makefile',
+      automerge: true,
       fileMatch: [
         '^Makefile$',
       ],

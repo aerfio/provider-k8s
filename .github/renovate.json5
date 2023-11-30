@@ -14,18 +14,17 @@
   ],
   regexManagers: [
     {
-      description: 'Bump golangci-lint version in workflows and the Makefile',
-      fileMatch: [
-        '^\\.github\\/workflows\\/[^/]+\\.ya?ml$',
-        '^Makefile$',
+      // We want a PR to bump golangci-lint versions used through env variables in
+      // any Github Actions or Makefile, taking it from the official Github
+      // repository tags.
+      "fileMatch": ["^\\.github\\/workflows\\/[^/]+\\.ya?ml$","^Makefile$"],
+      "matchStrings": [
+        "GOLANGCI_VERSION: 'v(?<currentValue>.*?)'\\n",
+        "GOLANGCI_LINT_VERSION = (?<currentValue>.*?)\\n"
       ],
-      matchStrings: [
-        "GOLANGCI_LINT_VERSION: 'v(?<currentValue>.*?)'\\n",
-        'GOLANGCI_LINT_VERSION \?= v(?<currentValue>.*?)',
-      ],
-      datasourceTemplate: 'github-tags',
-      depNameTemplate: 'golangci/golangci-lint',
-      extractVersionTemplate: '^v(?<version>.*)$',
+      "datasourceTemplate": "github-tags",
+      "depNameTemplate": "golangci/golangci-lint",
+      "extractVersionTemplate": "^v(?<version>.*)$"
     },
     {
       description: 'Bump crd-ref-docs version in Makefile',

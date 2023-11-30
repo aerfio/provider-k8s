@@ -18,7 +18,7 @@ GOLANGCI_LINT ?= bin/golangci-lint-${GOLANGCI_LINT_VERSION}
 ${GOLANGCI_LINT}:
 	./hack/get-go-tool.sh "github.com/golangci/golangci-lint/cmd/golangci-lint" $(GOLANGCI_LINT_VERSION)
 
-CRD_REF_DOCS_VERSION = v0.0.9
+CRD_REF_DOCS_VERSION = v0.0.10
 CRD_REF_DOCS ?= bin/crd-ref-docs-${CRD_REF_DOCS_VERSION}
 ${CRD_REF_DOCS}:
 	./hack/get-go-tool.sh "github.com/elastic/crd-ref-docs" $(CRD_REF_DOCS_VERSION)

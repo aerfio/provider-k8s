@@ -20,7 +20,7 @@
       "fileMatch": ["^\\.github\\/workflows\\/[^/]+\\.ya?ml$","^Makefile$"],
       "matchStrings": [
         "GOLANGCI_VERSION: 'v(?<currentValue>.*?)'\\n",
-        "GOLANGCI_LINT_VERSION = (?<currentValue>.*?)\\n"
+        "GOLANGCI_LINT_VERSION = v(?<currentValue>.*?)\\n"
       ],
       "datasourceTemplate": "github-tags",
       "depNameTemplate": "golangci/golangci-lint",
@@ -32,7 +32,7 @@
         '^Makefile$',
       ],
       matchStrings: [
-        'CRD_REF_DOCS_VERSION \?= v(?<currentValue>.*?)\\n',
+        'CRD_REF_DOCS_VERSION = v(?<currentValue>.*?)\\n',
       ],
       datasourceTemplate: 'github-tags',
       depNameTemplate: 'elastic/crd-ref-docs',
@@ -44,7 +44,7 @@
         '^Makefile$',
       ],
       matchStrings: [
-        'CONTROLLER_TOOLS_VERSION \?= v(?<currentValue>.*?)\\n',
+        'CONTROLLER_TOOLS_VERSION = v(?<currentValue>.*?)\\n',
       ],
       datasourceTemplate: 'github-tags',
       depNameTemplate: 'kubernetes-sigs/controller-tools',

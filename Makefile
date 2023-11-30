@@ -2,7 +2,7 @@ CURRENT_DIR = $(dir $(abspath $(firstword $(MAKEFILE_LIST))))
 
 all: generate test build
 
-CONTROLLER_TOOLS_VERSION ?= v0.12.0
+CONTROLLER_TOOLS_VERSION = v0.12.0
 CONTROLLER_GEN ?= bin/controller-gen-${CONTROLLER_TOOLS_VERSION}
 ${CONTROLLER_GEN}:
 	./hack/get-go-tool.sh "sigs.k8s.io/controller-tools/cmd/controller-gen" $(CONTROLLER_TOOLS_VERSION)
@@ -18,7 +18,7 @@ GOLANGCI_LINT ?= bin/golangci-lint-${GOLANGCI_LINT_VERSION}
 ${GOLANGCI_LINT}:
 	./hack/get-go-tool.sh "github.com/golangci/golangci-lint/cmd/golangci-lint" $(GOLANGCI_LINT_VERSION)
 
-CRD_REF_DOCS_VERSION ?= v0.0.9
+CRD_REF_DOCS_VERSION = v0.0.9
 CRD_REF_DOCS ?= bin/crd-ref-docs-${CRD_REF_DOCS_VERSION}
 ${CRD_REF_DOCS}:
 	./hack/get-go-tool.sh "github.com/elastic/crd-ref-docs" $(CRD_REF_DOCS_VERSION)

@@ -21,7 +21,7 @@
       ],
       matchStrings: [
         "GOLANGCI_LINT_VERSION: 'v(?<currentValue>.*?)'\\n",
-        'GOLANGCI_LINT_VERSION ?= v(?<currentValue>.*?)\\n',
+        'GOLANGCI_LINT_VERSION ?= v(?<currentValue>.*?)',
       ],
       datasourceTemplate: 'github-tags',
       depNameTemplate: 'golangci/golangci-lint',

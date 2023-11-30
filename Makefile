@@ -2,7 +2,7 @@ CURRENT_DIR = $(dir $(abspath $(firstword $(MAKEFILE_LIST))))
 
 all: generate test build
 
-CONTROLLER_TOOLS_VERSION = v0.12.0
+CONTROLLER_TOOLS_VERSION = v0.13.0
 CONTROLLER_GEN ?= bin/controller-gen-${CONTROLLER_TOOLS_VERSION}
 ${CONTROLLER_GEN}:
 	./hack/get-go-tool.sh "sigs.k8s.io/controller-tools/cmd/controller-gen" $(CONTROLLER_TOOLS_VERSION)

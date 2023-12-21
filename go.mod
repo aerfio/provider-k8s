@@ -5,7 +5,7 @@ go 1.21.5
 require (
 	github.com/alecthomas/kong v0.8.1
 	github.com/crossplane/crossplane-runtime v1.14.3
-	github.com/go-logr/logr v1.3.0
+	github.com/go-logr/logr v1.4.1
 	github.com/google/cel-go v0.17.7 // version from k8s.io/apiserver
 	github.com/google/go-cmp v0.6.0
 	github.com/stretchr/testify v1.8.4

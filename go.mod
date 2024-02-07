@@ -1,6 +1,6 @@
 module aerf.io/provider-k8s
 
-go 1.21.5
+go 1.22.0
 
 require (
 	github.com/alecthomas/kong v0.8.1

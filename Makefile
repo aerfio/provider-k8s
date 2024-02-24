@@ -2,7 +2,7 @@ CURRENT_DIR = $(dir $(abspath $(firstword $(MAKEFILE_LIST))))
 
 all: generate test build
 
-CONTROLLER_TOOLS_VERSION = v0.13.0
+CONTROLLER_TOOLS_VERSION = v0.14.0
 CONTROLLER_GEN ?= bin/controller-gen-${CONTROLLER_TOOLS_VERSION}
 ${CONTROLLER_GEN}:
 	./hack/get-go-tool.sh "sigs.k8s.io/controller-tools/cmd/controller-gen" $(CONTROLLER_TOOLS_VERSION)
@@ -13,7 +13,7 @@ ${ANGRYJET}:
 	./hack/get-go-tool.sh "github.com/crossplane/crossplane-tools/cmd/angryjet" $(ANGRYJET_VERSION)
 
 # yolo, I know what the docs say, but goreleaser is doing essentially nothing unusual in golangci-lint's release pipeline and I always use newest Go version so we should be fine :shrug:
-GOLANGCI_LINT_VERSION = v1.55.2
+GOLANGCI_LINT_VERSION = v1.56.2
 GOLANGCI_LINT ?= bin/golangci-lint-${GOLANGCI_LINT_VERSION}
 ${GOLANGCI_LINT}:
 	./hack/get-go-tool.sh "github.com/golangci/golangci-lint/cmd/golangci-lint" $(GOLANGCI_LINT_VERSION)
@@ -36,7 +36,7 @@ generate: ${ANGRYJET} ${CRD_REF_DOCS} generate-crds
 
 .PHONY: generate-crds
 generate-crds: ${CONTROLLER_GEN}
-	$(CONTROLLER_GEN) object:headerFile=./hack/boilerplate.go.txt paths=./... crd:crdVersions=v1 output:artifacts:config=./package/crds
+	$(CONTROLLER_GEN) crd:ignoreUnexportedFields=true,allowDangerousTypes=true paths="./..." output:crd:artifacts:config=./package/crds
 
 .PHONY: test
 test:

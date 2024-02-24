@@ -32,8 +32,8 @@ import (
 	"aerf.io/provider-k8s/internal/cacheregistry"
 	"aerf.io/provider-k8s/internal/celcheck"
 	"aerf.io/provider-k8s/internal/controllers/generic"
+	"aerf.io/provider-k8s/internal/k8scmp"
 	"aerf.io/provider-k8s/internal/restcfgutil"
-	"aerf.io/provider-k8s/internal/safecmp"
 )
 
 const (
@@ -185,7 +185,7 @@ func (e *external) Observe(ctx context.Context, cr *objv1alpha1.Object) (managed
 		// with the desired managed resource state. This lets the managed
 		// resource reconciler know that it needs to call Update.
 		ResourceUpToDate: !e.hasDrifted(observed, desired),
-		Diff:             safecmp.DiffUnstructured(observed, desired),
+		Diff:             k8scmp.DiffUnstructured(observed, desired),
 	}, errors.Wrap(e.setObserved(cr, observed), "failed to derive object status from the observed remote object")
 }
 

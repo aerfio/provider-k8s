@@ -4,7 +4,7 @@ go 1.21.5
 
 require (
 	github.com/alecthomas/kong v0.8.1
-	github.com/crossplane/crossplane-runtime v1.15.0-rc.0
+	github.com/crossplane/crossplane-runtime v1.15.0
 	github.com/go-logr/logr v1.4.1
 	github.com/google/cel-go v0.17.7 // version from k8s.io/apiserver
 	github.com/google/go-cmp v0.6.0
@@ -21,7 +21,7 @@ require (
 
 require (
 	github.com/crossplane/crossplane-tools v0.0.0-20230925130601-628280f8bf79
-	sigs.k8s.io/controller-tools v0.13.0
+	sigs.k8s.io/controller-tools v0.14.0
 )
 
 require (

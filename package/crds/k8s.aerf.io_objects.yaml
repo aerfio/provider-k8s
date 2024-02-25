@@ -92,7 +92,6 @@ spec:
                     description: Raw YAML representation of the kubernetes object
                       to be created.
                     type: object
-                    x-kubernetes-embedded-resource: true
                     x-kubernetes-preserve-unknown-fields: true
                     x-kubernetes-validations:
                     - message: Kind is immutable

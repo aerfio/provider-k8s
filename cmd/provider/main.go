@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"time"
 
 	"github.com/alecthomas/kong"
@@ -29,6 +30,7 @@ import (
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"aerf.io/provider-k8s/apis"
 	objv1alpha1 "aerf.io/provider-k8s/apis/object/v1alpha1"
@@ -97,6 +99,14 @@ func main() {
 		PollInterval:            cfg.PollInterval,
 		GlobalRateLimiter:       ratelimiter.NewGlobal(cfg.MaxReconcileRate),
 		Features:                &feature.Flags{},
+	}
+
+	err = ctrl.NewControllerManagedBy(mgr).Owns(&objv1alpha1.Object{}).Complete(reconcile.Func(func(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
+		ctrl.LoggerFrom(ctx).Info("reconciling resource")
+		return reconcile.Result{}, nil
+	}))
+	if err != nil {
+		panic(err)
 	}
 
 	kctx.FatalIfErrorf(configcontroller.Setup(mgr, o), "Cannot setup %s controller", v1alpha1.ProviderConfigKind)

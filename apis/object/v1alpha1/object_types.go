@@ -1,29 +1,22 @@
 package v1alpha1
 
 import (
-	"encoding/json"
 	"reflect"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
-	"github.com/crossplane/crossplane-runtime/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
+	"aerf.io/provider-k8s/apis/common/v1alpha1"
 	"aerf.io/provider-k8s/internal/controllers/generic"
 )
 
 // ObjectParameters are the configurable fields of a Object.
 type ObjectParameters struct {
 	// Raw YAML representation of the kubernetes object to be created.
-	// +kubebuilder:validation:EmbeddedResource
-	// +kubebuilder:pruning:PreserveUnknownFields
-	// +kubebuilder:validation:XValidation:rule="self.kind == oldSelf.kind",message="Kind is immutable"
-	// +kubebuilder:validation:XValidation:rule="!(has(self.metadata.generateName))",message="generateName is disallowed"
-	// +kubebuilder:validation:XValidation:rule="self.apiVersion == oldSelf.apiVersion",message="APIVersion is immutable"
-	// +kubebuilder:validation:XValidation:rule="self.metadata.name == oldSelf.metadata.name",message="metadata.name is immutable"
-	Manifest runtime.RawExtension `json:"manifest"`
+	Manifest v1alpha1.Preserved `json:"manifest"`
 }
 
 // A ObjectSpec defines the desired state of a Object.
@@ -132,9 +125,9 @@ func (o *Object) SetObservedGeneration(arg int64) {
 
 func (o *Object) GetDesired() (*unstructured.Unstructured, error) {
 	desired := &unstructured.Unstructured{}
-	if err := json.Unmarshal(o.Spec.ForProvider.Manifest.Raw, desired); err != nil {
-		return nil, errors.Wrap(err, "cannot unmarshal raw manifest")
-	}
+	// if err := json.Unmarshal(o.Spec.ForProvider.Manifest.Rest, desired); err != nil {
+	// 	return nil, errors.Wrap(err, "cannot unmarshal raw manifest")
+	// }
 
 	return desired, nil
 }

@@ -87,7 +87,7 @@ limitations under the License.
 //go:generate rm -rf ../package/crds
 
 // Generate deepcopy methodsets and CRD manifests
-//go:generate go run -tags generate sigs.k8s.io/controller-tools/cmd/controller-gen object:headerFile=../hack/boilerplate.go.txt crd:ignoreUnexportedFields=true,allowDangerousTypes=true paths="./..." output:crd:artifacts:config=../package/crds
+//go:generate go run -tags generate sigs.k8s.io/controller-tools/cmd/controller-gen object:headerFile=../hack/boilerplate.go.txt crd:ignoreUnexportedFields=true,allowDangerousTypes=true paths=./v1alpha1/...;./object/... output:crd:artifacts:config=../package/crds
 
 // Generate crossplane-runtime methodsets (resource.Claim, etc)
 //go:generate go run -tags generate github.com/crossplane/crossplane-tools/cmd/angryjet generate-methodsets --header-file=../hack/boilerplate.go.txt ./...

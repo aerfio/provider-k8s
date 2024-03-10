@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: provider-k8s-webhook
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: provider-k8s-webhook
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: provider-k8s-webhook
+  template:
+    metadata:
+      name: provider-k8s-webhook
+      labels:
+        app: provider-k8s-webhook
+    spec:
+      volumes:
+        - name: certs
+          secret:
+            secretName: provider-k8s-webhook-ca
+      containers:
+        - name: webhook
+          args:
+            - --debug
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          readinessProbe:
+            httpGet:
+              port: 8443
+              path: /readyz
+              scheme: HTTPS
+          livenessProbe:
+            httpGet:
+              port: 8443
+              path: /livez
+              scheme: HTTPS
+          volumeMounts:
+            - mountPath: /tmp/k8s-webhook-server/serving-certs
+              name: certs
+      restartPolicy: Always

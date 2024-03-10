@@ -19,7 +19,7 @@
       // repository tags.
       "fileMatch": ["^\\.github\\/workflows\\/[^/]+\\.ya?ml$","^Makefile$"],
       "matchStrings": [
-        "GOLANGCI_VERSION: 'v(?<currentValue>.*?)'\\n",
+        "GOLANGCI_VERSION: v(?<currentValue>.*?)\\n",
         "GOLANGCI_LINT_VERSION = v(?<currentValue>.*?)\\n"
       ],
       "datasourceTemplate": "github-tags",

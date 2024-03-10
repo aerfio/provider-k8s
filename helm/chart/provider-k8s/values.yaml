@@ -1,0 +1,7 @@
+image:
+  repository: "ko"
+  tag: "//aerf.io/provider-k8s/cmd/webhook"
+  pullPolicy: "Never"
+
+cert-manager:
+  enabled: false

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: provider-k8s-webhook
+spec:
+  selector:
+    app: provider-k8s-webhook
+  ports:
+    - name: https
+      port: 443
+      protocol: TCP
+      targetPort: 8443
+  type: ClusterIP

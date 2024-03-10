@@ -33,3 +33,16 @@ lint: ${GOLANGCI_LINT}
 .PHONY: lint-fix
 lint-fix: ${GOLANGCI_LINT}
 	$(GOLANGCI_LINT) run ./... --fix
+
+.PHONY: chart-tpl
+chart-tpl:
+	helm template provider-k8s ./helm/chart/provider-k8s --create-namespace --namespace aerfio > ./tmp/chart.yaml
+
+PHONY: apply
+apply:
+	kubectl create ns aerfio --dry-run=client -oyaml | kubectl apply -f -
+	KO_DOCKER_REPO=ko.local KOCACHE=$(CURRENT_DIR)/.kocache ko apply -f ./tmp/chart.yaml --base-import-paths
+
+PHONY: cert-manager
+cert-manager:
+	kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.3/cert-manager.yaml

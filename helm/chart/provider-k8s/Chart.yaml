@@ -1,0 +1,11 @@
+apiVersion: v2
+name: provider-k8s
+description: provider-k8s
+type: application
+version: 0.0.0
+appVersion: "latest"
+dependencies:
+  - name: cert-manager
+    version: "1.*"
+    repository: https://charts.jetstack.io
+    condition: cert-manager.enabled

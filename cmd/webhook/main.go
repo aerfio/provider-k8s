@@ -53,14 +53,14 @@ func main() {
 	zl := zap.New(useColoredDevMode(cfg.Debug))
 	log := logging.NewLogrLogger(zl.WithName("provider-k8s"))
 	ctrl.SetLogger(zl)
-	//if cfg.Debug {
-	//	// The controller-runtime runs with a no-op logger by default. It is
-	//	// *very* verbose even at info level, so we only provide it a real
-	//	// logger when we're running in debug mode.
-	//	ctrl.SetLogger(zl)
-	//} else {
-	//	ctrl.SetLogger(logr.Discard())
-	//}
+	// if cfg.Debug {
+	// 	// The controller-runtime runs with a no-op logger by default. It is
+	// 	// *very* verbose even at info level, so we only provide it a real
+	// 	// logger when we're running in debug mode.
+	// 	ctrl.SetLogger(zl)
+	// } else {
+	// 	ctrl.SetLogger(logr.Discard())
+	// }
 	// Create a webhook server
 
 	hookServer := webhook.DefaultServer{

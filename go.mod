@@ -4,7 +4,7 @@ go 1.22.1
 
 require (
 	github.com/alecthomas/kong v0.9.0
-	github.com/crossplane/crossplane-runtime v1.15.1
+	github.com/crossplane/crossplane-runtime v1.16.0
 	github.com/go-logr/logr v1.4.1
 	github.com/google/cel-go v0.17.7 // version from k8s.io/apiserver
 	github.com/google/go-cmp v0.6.0
@@ -30,6 +30,7 @@ require (
 	github.com/alecthomas/units v0.0.0-20211218093645-b94a6e3cc137 // indirect
 	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20230305170008-8188dc5388df // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/dave/jennifer v1.4.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect

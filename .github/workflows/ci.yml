@@ -10,7 +10,7 @@ on:
       - "**"
 
 env:
-  GOLANGCI_LINT_VERSION: v1.57.1
+  GOLANGCI_LINT_VERSION: v1.59.1
 jobs:
   lint:
     runs-on: ubuntu-22.04

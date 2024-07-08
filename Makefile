@@ -3,7 +3,7 @@ CURRENT_DIR = $(dir $(abspath $(firstword $(MAKEFILE_LIST))))
 all: generate test build
 
 # yolo, I know what the docs say, but goreleaser is doing essentially nothing unusual in golangci-lint's release pipeline and I always use newest Go version so we should be fine :shrug:
-GOLANGCI_LINT_VERSION = v1.57.1
+GOLANGCI_LINT_VERSION = v1.59.1
 GOLANGCI_LINT ?= bin/golangci-lint-${GOLANGCI_LINT_VERSION}
 ${GOLANGCI_LINT}:
 	./hack/get-go-tool.sh "github.com/golangci/golangci-lint/cmd/golangci-lint" $(GOLANGCI_LINT_VERSION)
